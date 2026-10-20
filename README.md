@@ -12,3 +12,17 @@ Web application for managing courses, examinations, examiner slot schedules, stu
 
 ## Setup & Run
 
+### Backend (Port 5000)
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+python backend/app.py
+```
+
+### Frontend (Port 8000)
+```bash
+cd frontend
+npm install
+npm run serve
+```
