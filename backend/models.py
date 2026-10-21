@@ -64,3 +64,36 @@ class Course(db.Model):
     description = db.Column(db.Text, default="")
     department = db.Column(db.String(100), default="Computer Science")
     credits = db.Column(db.Integer, default=4)
+    semester = db.Column(db.String(40), default="Term 1 - 2026")
+    status = db.Column(db.String(20), default="Active")
+    created_at = db.Column(db.DateTime, default=now_utc)
+
+    examinations = db.relationship("Examination", backref="course", lazy=True, cascade="all, delete-orphan")
+
+    def to_dict(self, include_counts=True):
+        res = {
+            "id": self.id,
+            "code": self.code,
+            "name": self.name,
+            "description": self.description or "",
+            "department": self.department or "",
+            "credits": self.credits,
+            "semester": self.semester or "",
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+        if include_counts:
+            res["examinations_count"] = len(self.examinations)
+        return res
+
+
+class ExaminerAssignment(db.Model):
+    __tablename__ = "examiner_assignments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    examination_id = db.Column(db.Integer, db.ForeignKey("examinations.id", ondelete="CASCADE"), nullable=False)
+    examiner_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    assigned_at = db.Column(db.DateTime, default=now_utc)
+
+    examiner = db.relationship("User", foreign_keys=[examiner_id])
+
