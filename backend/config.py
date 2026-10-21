@@ -22,3 +22,15 @@ class Config:
 
     REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
     CACHE_DEFAULT_TIMEOUT = int(os.environ.get("CACHE_DEFAULT_TIMEOUT", 120))
+
+    CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
+    CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/2")
+    CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true"
+
+    SMTP_HOST = os.environ.get("SMTP_HOST", "localhost")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", 1025))
+    SMTP_SENDER = os.environ.get("SMTP_SENDER", "noreply@emp.local")
+    GCHAT_WEBHOOK_URL = os.environ.get("GCHAT_WEBHOOK_URL", "")
+
+    EXPORTS_FOLDER = EXPORTS_DIR
+    REPORTS_FOLDER = REPORTS_DIR
