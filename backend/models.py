@@ -196,3 +196,35 @@ class Examination(db.Model):
             "assigned_examiners": faculty,
             "assigned_examiner_ids": [f["id"] for f in faculty],
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+        if include_details:
+            res["rubrics"] = [r.to_dict() for r in self.rubrics]
+            res["slots_count"] = len(self.slots)
+            res["available_slots_count"] = sum(
+                1 for s in self.slots if s.status == "Available" and s.available_seats > 0
+            )
+        return res
+
+
+class ExaminationRubric(db.Model):
+    __tablename__ = "examination_rubrics"
+
+    id = db.Column(db.Integer, primary_key=True)
+    examination_id = db.Column(db.Integer, db.ForeignKey("examinations.id", ondelete="CASCADE"), nullable=False)
+    criterion_name = db.Column(db.String(120), nullable=False)
+    max_marks = db.Column(db.Float, nullable=False)
+    weightage = db.Column(db.Float, nullable=False, default=25.0)
+    description = db.Column(db.Text, default="")
+    created_at = db.Column(db.DateTime, default=now_utc)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "examination_id": self.examination_id,
+            "criterion_name": self.criterion_name,
+            "max_marks": self.max_marks,
+            "weightage": self.weightage,
+            "description": self.description or "",
+        }
+
+
