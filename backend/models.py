@@ -228,3 +228,36 @@ class ExaminationRubric(db.Model):
         }
 
 
+class ExaminationSlot(db.Model):
+    __tablename__ = "examination_slots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    examination_id = db.Column(db.Integer, db.ForeignKey("examinations.id", ondelete="CASCADE"), nullable=False)
+    examiner_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    date = db.Column(db.String(20), nullable=False, index=True)
+    start_time = db.Column(db.String(10), nullable=False)
+    end_time = db.Column(db.String(10), nullable=False)
+    max_capacity = db.Column(db.Integer, nullable=False, default=1)
+    available_seats = db.Column(db.Integer, nullable=False, default=1)
+    status = db.Column(db.String(20), nullable=False, default="Available")
+    meeting_link = db.Column(db.String(255), default="")
+    venue = db.Column(db.String(120), default="Online / Google Meet")
+    created_at = db.Column(db.DateTime, default=now_utc)
+
+    examiner = db.relationship("User", foreign_keys=[examiner_id])
+    bookings = db.relationship("Booking", backref="slot", lazy=True, cascade="all, delete-orphan")
+
+    def recalculate_seats(self):
+        used = Booking.query.filter(
+            Booking.slot_id == self.id,
+            Booking.status.in_(["Booked", "Completed"]),
+        ).count()
+        self.available_seats = max(0, self.max_capacity - used)
+        if self.status not in ("Cancelled", "Completed"):
+            self.status = "Full" if self.available_seats <= 0 else "Available"
+
+    def to_dict(self, include_bookings=False):
+        booked_cnt = Booking.query.filter(
+            Booking.slot_id == self.id,
+            Booking.status != "Cancelled",
+        ).count()
