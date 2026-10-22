@@ -163,3 +163,36 @@ class Examination(db.Model):
 
     def to_dict(self, include_details=True):
         faculty = [
+            {
+                "id": a.examiner.id,
+                "name": a.examiner.name,
+                "email": a.examiner.email,
+                "department": a.examiner.department,
+            }
+            for a in self.assignments
+            if a.examiner
+        ]
+        res = {
+            "id": self.id,
+            "course_id": self.course_id,
+            "course_code": self.course.code if self.course else "",
+            "course_name": self.course.name if self.course else "",
+            "name": self.name,
+            "exam_type": self.exam_type,
+            "duration": self.duration,
+            "max_marks": self.max_marks,
+            "passing_marks": self.passing_marks,
+            "instructions": self.instructions or "",
+            "slot_creation_start": self.slot_creation_start,
+            "slot_creation_end": self.slot_creation_end,
+            "slot_booking_start": self.slot_booking_start,
+            "slot_booking_end": self.slot_booking_end,
+            "status": self.status,
+            "slot_creation_open": self.slot_creation_open,
+            "slot_booking_open": self.slot_booking_open,
+            "results_published": self.results_published,
+            "can_create_slots": self.is_slot_creation_allowed(),
+            "can_book_slots": self.is_slot_booking_allowed(),
+            "assigned_examiners": faculty,
+            "assigned_examiner_ids": [f["id"] for f in faculty],
+            "created_at": self.created_at.isoformat() if self.created_at else None,
