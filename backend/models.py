@@ -97,3 +97,36 @@ class ExaminerAssignment(db.Model):
 
     examiner = db.relationship("User", foreign_keys=[examiner_id])
 
+    __table_args__ = (
+        db.UniqueConstraint("examination_id", "examiner_id", name="uq_exam_examiner"),
+    )
+
+
+class Examination(db.Model):
+    __tablename__ = "examinations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    name = db.Column(db.String(160), nullable=False)
+    exam_type = db.Column(db.String(50), nullable=False, default="Viva")
+    duration = db.Column(db.Integer, nullable=False, default=30)
+    max_marks = db.Column(db.Float, nullable=False, default=100.0)
+    passing_marks = db.Column(db.Float, nullable=False, default=40.0)
+    instructions = db.Column(db.Text, default="Join 5 minutes before your scheduled slot with your student ID.")
+
+    slot_creation_start = db.Column(db.String(25), nullable=False)
+    slot_creation_end = db.Column(db.String(25), nullable=False)
+    slot_booking_start = db.Column(db.String(25), nullable=False)
+    slot_booking_end = db.Column(db.String(25), nullable=False)
+
+    status = db.Column(db.String(30), nullable=False, default="Draft")
+    slot_creation_open = db.Column(db.Boolean, default=False)
+    slot_booking_open = db.Column(db.Boolean, default=False)
+    results_published = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=now_utc)
+
+    rubrics = db.relationship("ExaminationRubric", backref="examination", lazy=True, cascade="all, delete-orphan")
+    slots = db.relationship("ExaminationSlot", backref="examination", lazy=True, cascade="all, delete-orphan")
+    assignments = db.relationship("ExaminerAssignment", backref="examination", lazy=True, cascade="all, delete-orphan")
+
+    def is_slot_creation_allowed(self):
