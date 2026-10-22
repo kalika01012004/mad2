@@ -130,3 +130,36 @@ class Examination(db.Model):
     assignments = db.relationship("ExaminerAssignment", backref="examination", lazy=True, cascade="all, delete-orphan")
 
     def is_slot_creation_allowed(self):
+        if self.status in ("Closed", "Completed"):
+            return False
+        if self.slot_creation_open or self.status == "Slot Creation":
+            today = date.today().isoformat()
+            if self.slot_creation_start and self.slot_creation_end:
+                if self.slot_creation_start <= today <= self.slot_creation_end:
+                    return True
+            if self.slot_creation_open:
+                return True
+        return False
+
+    def is_slot_booking_allowed(self):
+        if self.status in ("Closed", "Completed", "Draft"):
+            return False
+        if self.slot_booking_open or self.status == "Booking Open":
+            today = date.today().isoformat()
+            if self.slot_booking_start and self.slot_booking_end:
+                if self.slot_booking_start <= today <= self.slot_booking_end:
+                    return True
+            if self.slot_booking_open:
+                return True
+        return False
+
+    def has_booking_started(self):
+        if self.slot_booking_open or self.status in ("Booking Open", "Closed", "Completed"):
+            return True
+        today = date.today().isoformat()
+        if self.slot_booking_start and today >= self.slot_booking_start and self.status == "Booking Open":
+            return True
+        return False
+
+    def to_dict(self, include_details=True):
+        faculty = [
