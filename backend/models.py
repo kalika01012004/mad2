@@ -327,3 +327,36 @@ class Booking(db.Model):
             "end_time": self.slot.end_time if self.slot else "",
             "meeting_link": self.slot.meeting_link if self.slot else "",
             "venue": self.slot.venue if self.slot else "",
+            "examiner_id": self.slot.examiner_id if self.slot else None,
+            "examiner_name": self.slot.examiner.name if (self.slot and self.slot.examiner) else "",
+            "booking_date": self.booking_date.isoformat() if self.booking_date else None,
+            "status": self.status,
+            "rescheduled_by_admin": self.rescheduled_by_admin,
+            "admin_notes": self.admin_notes or "",
+            "results_published": published,
+            "slot_booking_end": exam.slot_booking_end if exam else "",
+            "can_book_slots": exam.is_slot_booking_allowed() if exam else False,
+            "evaluation": self.evaluation.to_dict() if self.evaluation else None,
+        }
+
+
+class Evaluation(db.Model):
+    __tablename__ = "evaluations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(db.Integer, db.ForeignKey("bookings.id", ondelete="CASCADE"), unique=True, nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    examiner_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    examination_id = db.Column(db.Integer, db.ForeignKey("examinations.id", ondelete="CASCADE"), nullable=False, index=True)
+    total_marks = db.Column(db.Float, nullable=False, default=0.0)
+    remarks = db.Column(db.Text, default="")
+    rubric_breakdown = db.Column(db.Text, default="[]")
+    evaluation_date = db.Column(db.DateTime, default=now_utc)
+    status = db.Column(db.String(20), nullable=False, default="Submitted")
+
+    student = db.relationship("User", foreign_keys=[student_id])
+    examiner = db.relationship("User", foreign_keys=[examiner_id])
+    examination = db.relationship("Examination", foreign_keys=[examination_id])
+
+    def get_breakdown(self):
+        try:
