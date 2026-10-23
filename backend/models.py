@@ -393,3 +393,36 @@ class Evaluation(db.Model):
             "examiner_id": self.examiner_id,
             "examiner_name": self.examiner.name if self.examiner else "",
             "examination_id": self.examination_id,
+            "examination_name": exam.name if exam else "",
+            "course_code": exam.course.code if (exam and exam.course) else "",
+            "course_name": exam.course.name if (exam and exam.course) else "",
+            "max_marks": max_m,
+            "passing_marks": exam.passing_marks if exam else 40.0,
+            "total_marks": round(self.total_marks, 2),
+            "percentage": pct,
+            "grade": grade,
+            "passed": passed,
+            "remarks": self.remarks or "",
+            "rubric_breakdown": self.get_breakdown(),
+            "evaluation_date": self.evaluation_date.isoformat() if self.evaluation_date else None,
+            "status": self.status,
+            "results_published": exam.results_published if exam else False,
+        }
+
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = db.Column(db.String(160), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    notif_type = db.Column(db.String(30), default="system")
+    is_read = db.Column(db.Boolean, default=False)
+    action_url = db.Column(db.String(255), default="")
+    created_at = db.Column(db.DateTime, default=now_utc)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
