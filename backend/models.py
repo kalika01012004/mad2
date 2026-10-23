@@ -261,3 +261,36 @@ class ExaminationSlot(db.Model):
             Booking.slot_id == self.id,
             Booking.status != "Cancelled",
         ).count()
+        res = {
+            "id": self.id,
+            "examination_id": self.examination_id,
+            "examination_name": self.examination.name if self.examination else "",
+            "course_code": self.examination.course.code if (self.examination and self.examination.course) else "",
+            "course_name": self.examination.course.name if (self.examination and self.examination.course) else "",
+            "exam_type": self.examination.exam_type if self.examination else "",
+            "examiner_id": self.examiner_id,
+            "examiner_name": self.examiner.name if self.examiner else "",
+            "examiner_email": self.examiner.email if self.examiner else "",
+            "examiner_department": self.examiner.department if self.examiner else "",
+            "date": self.date,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "max_capacity": self.max_capacity,
+            "available_seats": self.available_seats,
+            "booked_count": booked_cnt,
+            "status": self.status,
+            "meeting_link": self.meeting_link or "",
+            "venue": self.venue or "Online",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+        if include_bookings:
+            res["bookings"] = [b.to_dict() for b in self.bookings]
+        return res
+
+
+class Booking(db.Model):
+    __tablename__ = "bookings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    slot_id = db.Column(db.Integer, db.ForeignKey("examination_slots.id", ondelete="CASCADE"), nullable=False, index=True)
