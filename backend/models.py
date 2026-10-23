@@ -360,3 +360,36 @@ class Evaluation(db.Model):
 
     def get_breakdown(self):
         try:
+            return json.loads(self.rubric_breakdown or "[]")
+        except Exception:
+            return []
+
+    def to_dict(self):
+        exam = self.examination
+        max_m = exam.max_marks if exam and exam.max_marks else 100.0
+        pct = round((self.total_marks / max_m) * 100.0, 2) if max_m > 0 else 0.0
+        if pct >= 90:
+            grade = "S"
+        elif pct >= 80:
+            grade = "A"
+        elif pct >= 70:
+            grade = "B"
+        elif pct >= 60:
+            grade = "C"
+        elif pct >= 50:
+            grade = "D"
+        elif pct >= 40:
+            grade = "E"
+        else:
+            grade = "F"
+
+        passed = self.total_marks >= (exam.passing_marks if exam else 40.0)
+        return {
+            "id": self.id,
+            "booking_id": self.booking_id,
+            "student_id": self.student_id,
+            "student_name": self.student.name if self.student else "",
+            "student_roll_number": self.student.roll_number if self.student else "",
+            "examiner_id": self.examiner_id,
+            "examiner_name": self.examiner.name if self.examiner else "",
+            "examination_id": self.examination_id,
