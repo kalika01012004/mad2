@@ -294,3 +294,36 @@ class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     slot_id = db.Column(db.Integer, db.ForeignKey("examination_slots.id", ondelete="CASCADE"), nullable=False, index=True)
+    examination_id = db.Column(db.Integer, db.ForeignKey("examinations.id", ondelete="CASCADE"), nullable=False, index=True)
+    booking_date = db.Column(db.DateTime, default=now_utc)
+    status = db.Column(db.String(20), nullable=False, default="Booked")
+    rescheduled_by_admin = db.Column(db.Boolean, default=False)
+    admin_notes = db.Column(db.Text, default="")
+
+    student = db.relationship("User", foreign_keys=[student_id])
+    examination = db.relationship("Examination", foreign_keys=[examination_id])
+    evaluation = db.relationship("Evaluation", backref="booking", uselist=False, cascade="all, delete-orphan")
+
+    def to_dict(self):
+        exam = self.examination or (self.slot.examination if self.slot else None)
+        published = exam.results_published if exam else False
+        return {
+            "id": self.id,
+            "student_id": self.student_id,
+            "student_name": self.student.name if self.student else "",
+            "student_email": self.student.email if self.student else "",
+            "student_roll_number": self.student.roll_number if self.student else "",
+            "student_department": self.student.department if self.student else "",
+            "slot_id": self.slot_id,
+            "examination_id": self.examination_id,
+            "examination_name": exam.name if exam else "",
+            "exam_type": exam.exam_type if exam else "",
+            "max_marks": exam.max_marks if exam else 100.0,
+            "passing_marks": exam.passing_marks if exam else 40.0,
+            "course_code": exam.course.code if (exam and exam.course) else "",
+            "course_name": exam.course.name if (exam and exam.course) else "",
+            "slot_date": self.slot.date if self.slot else "",
+            "start_time": self.slot.start_time if self.slot else "",
+            "end_time": self.slot.end_time if self.slot else "",
+            "meeting_link": self.slot.meeting_link if self.slot else "",
+            "venue": self.slot.venue if self.slot else "",
