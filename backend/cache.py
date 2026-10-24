@@ -26,3 +26,31 @@ class LocalCacheStore:
     def set(self, key, val, ex=None):
         exp = (time.time() + float(ex)) if ex else None
         self.data[key] = (val, exp)
+        return True
+
+    def keys(self, pattern="*"):
+        now = time.time()
+        out = []
+        for k, (_, exp) in list(self.data.items()):
+            if exp and now > exp:
+                self.data.pop(k, None)
+            elif fnmatch.fnmatch(k, pattern):
+                out.append(k)
+        return out
+
+    def delete(self, *keys):
+        count = 0
+        for k in keys:
+            if k in self.data:
+                del self.data[k]
+                count += 1
+        return count
+
+    def flushdb(self):
+        self.data.clear()
+        return True
+
+
+def get_redis_client():
+    global _client, _mode
+    if _client is not None:
