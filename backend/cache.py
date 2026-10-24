@@ -83,3 +83,31 @@ def cache_get(key):
             _stats["hits"] += 1
             return json.loads(raw)
         _stats["misses"] += 1
+        return None
+    except Exception:
+        _stats["misses"] += 1
+        return None
+
+
+def cache_set(key, value, timeout=None):
+    c = get_redis_client()
+    if timeout is None:
+        try:
+            timeout = current_app.config.get("CACHE_DEFAULT_TIMEOUT", 120)
+        except RuntimeError:
+            timeout = 120
+    try:
+        c.set(key, json.dumps(value, default=str), ex=timeout)
+        _stats["sets"] += 1
+    except Exception:
+        pass
+
+
+def cache_invalidate_prefix(*prefixes):
+    c = get_redis_client()
+    try:
+        for p in prefixes:
+            matched = c.keys(f"{p}*")
+            if matched:
+                c.delete(*matched)
+                _stats["invalidations"] += len(matched)
