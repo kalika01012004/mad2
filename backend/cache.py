@@ -54,3 +54,32 @@ class LocalCacheStore:
 def get_redis_client():
     global _client, _mode
     if _client is not None:
+        return _client
+
+    url = "redis://localhost:6379/0"
+    try:
+        if current_app:
+            url = current_app.config.get("REDIS_URL", url)
+    except RuntimeError:
+        pass
+
+    try:
+        r = redis.Redis.from_url(url, decode_responses=True, socket_connect_timeout=0.5)
+        r.ping()
+        _client = r
+        _mode = "redis"
+    except Exception:
+        _client = LocalCacheStore()
+        _mode = "memory"
+
+    return _client
+
+
+def cache_get(key):
+    c = get_redis_client()
+    try:
+        raw = c.get(key)
+        if raw is not None:
+            _stats["hits"] += 1
+            return json.loads(raw)
+        _stats["misses"] += 1
