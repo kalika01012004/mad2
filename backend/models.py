@@ -426,3 +426,36 @@ class Notification(db.Model):
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "title": self.title,
+            "message": self.message,
+            "notif_type": self.notif_type,
+            "is_read": self.is_read,
+            "action_url": self.action_url or "",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class JobExecutionLog(db.Model):
+    __tablename__ = "job_execution_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_name = db.Column(db.String(80), nullable=False)
+    triggered_by = db.Column(db.String(80), default="scheduler")
+    status = db.Column(db.String(25), default="Completed")
+    summary = db.Column(db.Text, default="")
+    artifact_path = db.Column(db.String(255), default="")
+    html_preview = db.Column(db.Text, default="")
+    created_at = db.Column(db.DateTime, default=now_utc)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "job_name": self.job_name,
+            "triggered_by": self.triggered_by,
+            "status": self.status,
+            "summary": self.summary,
+            "artifact_path": self.artifact_path or "",
+            "has_html_preview": bool(self.html_preview),
+            "html_preview": self.html_preview or "",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
