@@ -111,3 +111,31 @@ def cache_invalidate_prefix(*prefixes):
             if matched:
                 c.delete(*matched)
                 _stats["invalidations"] += len(matched)
+    except Exception:
+        pass
+
+
+def cache_clear_all():
+    c = get_redis_client()
+    try:
+        c.flushdb()
+        _stats["invalidations"] += 1
+    except Exception:
+        pass
+
+
+def get_cache_info():
+    c = get_redis_client()
+    total_keys = 0
+    try:
+        total_keys = len(c.keys("*"))
+    except Exception:
+        pass
+    return {
+        "mode": _mode,
+        "active_keys": total_keys,
+        "hits": _stats["hits"],
+        "misses": _stats["misses"],
+        "sets": _stats["sets"],
+        "invalidations": _stats["invalidations"],
+    }
