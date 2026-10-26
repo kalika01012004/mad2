@@ -53,3 +53,31 @@ def register_student():
     db.session.add(student)
     db.session.flush()
 
+    if not student.roll_number:
+        student.roll_number = f"26F{student.id:04d}"
+
+    db.session.add(
+        Notification(
+            user_id=student.id,
+            title="Welcome to EMP V2",
+            message="Your student account is active. You can browse courses and book examination slots.",
+            notif_type="system",
+        )
+    )
+    db.session.commit()
+
+    token = create_access_token(identity=str(student.id), additional_claims={"role": student.role})
+    return jsonify({
+        "message": "Student registered.",
+        "access_token": token,
+        "user": student.to_dict(),
+    }), 201
+
+
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    body = request.get_json() or {}
+    raw_id = (body.get("identifier") or body.get("email") or body.get("username") or "").strip()
+    if "(" in raw_id:
+        raw_id = raw_id.split("(")[0].strip()
+    ident = raw_id.lower()
