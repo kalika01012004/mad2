@@ -81,3 +81,30 @@ def login():
     if "(" in raw_id:
         raw_id = raw_id.split("(")[0].strip()
     ident = raw_id.lower()
+    pwd = body.get("password") or ""
+
+    if not ident or not pwd:
+        return jsonify({"error": "Username/email and password are required."}), 400
+
+    usr = User.query.filter(
+        (db.func.lower(User.email) == ident)
+        | (db.func.lower(User.username) == ident)
+        | (db.func.lower(User.name) == ident)
+        | (db.func.lower(User.roll_number) == ident)
+    ).first()
+
+    valid_pwd = False
+    if usr and (usr.check_password(pwd) or usr.check_password(pwd.strip())):
+        valid_pwd = True
+
+    if not usr or not valid_pwd:
+        return jsonify({"error": "Invalid username/email or password."}), 401
+
+    if usr.status != "Active":
+        return jsonify({"error": "Account is inactive."}), 403
+
+    token = create_access_token(identity=str(usr.id), additional_claims={"role": usr.role})
+    return jsonify({
+        "message": f"Logged in as {usr.role}.",
+        "access_token": token,
+        "user": usr.to_dict(),
