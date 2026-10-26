@@ -108,3 +108,31 @@ def login():
         "message": f"Logged in as {usr.role}.",
         "access_token": token,
         "user": usr.to_dict(),
+    }), 200
+
+
+@auth_bp.route("/me", methods=["GET"])
+@jwt_required()
+def get_me():
+    usr = get_current_user()
+    if not usr:
+        return jsonify({"error": "User not found."}), 404
+    return jsonify({"user": usr.to_dict()}), 200
+
+
+@auth_bp.route("/profile", methods=["PUT"])
+@jwt_required()
+def update_profile():
+    usr = get_current_user()
+    if not usr:
+        return jsonify({"error": "User not found."}), 404
+
+    body = request.get_json() or {}
+    if "name" in body and body["name"].strip():
+        usr.name = body["name"].strip()
+    if "contact_details" in body:
+        usr.contact_details = body["contact_details"].strip()
+    if "department" in body and body["department"].strip():
+        usr.department = body["department"].strip()
+    if "roll_number" in body and usr.role == "student":
+        usr.roll_number = body["roll_number"].strip().upper()
