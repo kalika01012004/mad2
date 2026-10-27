@@ -136,3 +136,30 @@ def update_profile():
         usr.department = body["department"].strip()
     if "roll_number" in body and usr.role == "student":
         usr.roll_number = body["roll_number"].strip().upper()
+    if "designation" in body and usr.role == "examiner":
+        usr.designation = body["designation"].strip()
+    if "specialization" in body and usr.role == "examiner":
+        usr.specialization = body["specialization"].strip()
+    if "bio" in body:
+        usr.bio = body["bio"].strip()
+    if "gchat_webhook" in body:
+        usr.gchat_webhook = body["gchat_webhook"].strip()
+
+    new_pwd = body.get("new_password")
+    if new_pwd:
+        if len(new_pwd) < 6:
+            return jsonify({"error": "New password must be at least 6 characters."}), 400
+        usr.set_password(new_pwd)
+
+    db.session.commit()
+    return jsonify({"message": "Profile saved.", "user": usr.to_dict()}), 200
+
+
+@auth_bp.route("/notifications", methods=["GET"])
+@jwt_required()
+def list_notifications():
+    usr = get_current_user()
+    rows = (
+        Notification.query.filter_by(user_id=usr.id)
+        .order_by(Notification.created_at.desc())
+        .limit(40)
