@@ -163,3 +163,31 @@ def list_notifications():
         Notification.query.filter_by(user_id=usr.id)
         .order_by(Notification.created_at.desc())
         .limit(40)
+        .all()
+    )
+    unread = Notification.query.filter_by(user_id=usr.id, is_read=False).count()
+    return jsonify({
+        "notifications": [n.to_dict() for n in rows],
+        "unread_count": unread,
+    }), 200
+
+
+@auth_bp.route("/notifications/<int:notif_id>/read", methods=["PUT"])
+@jwt_required()
+def mark_notification_read(notif_id):
+    usr = get_current_user()
+    row = Notification.query.filter_by(id=notif_id, user_id=usr.id).first()
+    if not row:
+        return jsonify({"error": "Notification not found."}), 404
+    row.is_read = True
+    db.session.commit()
+    return jsonify({"message": "Marked read."}), 200
+
+
+@auth_bp.route("/notifications/read-all", methods=["PUT"])
+@jwt_required()
+def mark_all_notifications_read():
+    usr = get_current_user()
+    Notification.query.filter_by(user_id=usr.id, is_read=False).update({"is_read": True})
+    db.session.commit()
+    return jsonify({"message": "All marked read."}), 200
