@@ -76,3 +76,42 @@ def admin_dashboard():
             "cancelled_bookings": cancelled_cnt,
             "total_evaluations": evals_cnt,
         },
+        "charts": {
+            "popular_examinations": {
+                "labels": exam_labels,
+                "bookings": exam_bookings,
+                "evaluations": exam_evals,
+            },
+            "examiner_workload": {
+                "labels": exm_labels,
+                "slots_created": exm_slots,
+                "evaluations_completed": exm_evals,
+            },
+            "booking_trends": {
+                "labels": ["Booked", "Completed", "Cancelled"],
+                "data": [booked_cnt, completed_cnt, cancelled_cnt],
+            },
+            "exam_status_distribution": {
+                "labels": list(status_map.keys()),
+                "data": list(status_map.values()),
+            },
+        },
+        "cache_info": get_cache_info(),
+    }
+    cache_set("admin:dashboard", data, timeout=60)
+    return jsonify(data), 200
+
+
+@admin_bp.route("/courses", methods=["GET"])
+@role_required("admin")
+def list_courses():
+    rows = Course.query.order_by(Course.code.asc()).all()
+    return jsonify({"courses": [c.to_dict() for c in rows]}), 200
+
+
+@admin_bp.route("/courses", methods=["POST"])
+@role_required("admin")
+def create_course():
+    body = request.get_json() or {}
+    code = (body.get("code") or "").strip().upper()
+    name = (body.get("name") or "").strip()
