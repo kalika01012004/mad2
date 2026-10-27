@@ -37,3 +37,42 @@ def admin_dashboard():
     booked_cnt = Booking.query.filter_by(status="Booked").count()
     completed_cnt = Booking.query.filter_by(status="Completed").count()
     cancelled_cnt = Booking.query.filter_by(status="Cancelled").count()
+    evals_cnt = Evaluation.query.count()
+
+    exams = Examination.query.all()
+    exam_labels = []
+    exam_bookings = []
+    exam_evals = []
+    for ex in exams:
+        exam_labels.append(ex.name)
+        b_total = Booking.query.filter(Booking.examination_id == ex.id, Booking.status != "Cancelled").count()
+        e_total = Evaluation.query.filter_by(examination_id=ex.id).count()
+        exam_bookings.append(b_total)
+        exam_evals.append(e_total)
+
+    examiners = User.query.filter_by(role="examiner").all()
+    exm_labels = []
+    exm_slots = []
+    exm_evals = []
+    for exm in examiners:
+        exm_labels.append(exm.name)
+        exm_slots.append(ExaminationSlot.query.filter_by(examiner_id=exm.id).count())
+        exm_evals.append(Evaluation.query.filter_by(examiner_id=exm.id).count())
+
+    status_map = {}
+    for st in ["Draft", "Slot Creation", "Booking Open", "Closed", "Completed"]:
+        status_map[st] = Examination.query.filter_by(status=st).count()
+
+    data = {
+        "summary": {
+            "total_courses": courses_cnt,
+            "total_examinations": exams_cnt,
+            "total_students": students_cnt,
+            "total_examiners": examiners_cnt,
+            "total_slots": slots_cnt,
+            "total_bookings": bookings_cnt,
+            "active_bookings": booked_cnt,
+            "completed_bookings": completed_cnt,
+            "cancelled_bookings": cancelled_cnt,
+            "total_evaluations": evals_cnt,
+        },
