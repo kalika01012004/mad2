@@ -271,3 +271,42 @@ def create_examination():
 @admin_bp.route("/examinations/<int:exam_id>", methods=["PUT"])
 @role_required("admin")
 def update_examination(exam_id):
+    exam = db.session.get(Examination, exam_id)
+    if not exam:
+        return jsonify({"error": "Examination not found."}), 404
+
+    body = request.get_json() or {}
+    if "course_id" in body and body["course_id"]:
+        exam.course_id = int(body["course_id"])
+    if "name" in body and body["name"].strip():
+        exam.name = body["name"].strip()
+    if "exam_type" in body and body["exam_type"].strip():
+        exam.exam_type = body["exam_type"].strip()
+    if "duration" in body:
+        exam.duration = int(body["duration"])
+    if "max_marks" in body:
+        exam.max_marks = float(body["max_marks"])
+    if "passing_marks" in body:
+        exam.passing_marks = float(body["passing_marks"])
+    if "instructions" in body:
+        exam.instructions = body["instructions"].strip()
+    if "slot_creation_start" in body:
+        exam.slot_creation_start = body["slot_creation_start"].strip()
+    if "slot_creation_end" in body:
+        exam.slot_creation_end = body["slot_creation_end"].strip()
+    if "slot_booking_start" in body:
+        exam.slot_booking_start = body["slot_booking_start"].strip()
+    if "slot_booking_end" in body:
+        exam.slot_booking_end = body["slot_booking_end"].strip()
+    if "status" in body:
+        exam.status = body["status"].strip()
+    if "slot_creation_open" in body:
+        exam.slot_creation_open = bool(body["slot_creation_open"])
+    if "slot_booking_open" in body:
+        exam.slot_booking_open = bool(body["slot_booking_open"])
+    if "results_published" in body:
+        exam.results_published = bool(body["results_published"])
+
+    if "examiner_ids" in body and isinstance(body["examiner_ids"], list):
+        ExaminerAssignment.query.filter_by(examination_id=exam.id).delete()
+        for ex_id in body["examiner_ids"]:
