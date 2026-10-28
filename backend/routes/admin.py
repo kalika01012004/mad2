@@ -154,3 +154,42 @@ def update_course(course_id):
         new_code = body["code"].strip().upper()
         dup = Course.query.filter(Course.code == new_code, Course.id != course.id).first()
         if dup:
+            return jsonify({"error": f"Course code '{new_code}' is already taken."}), 409
+        course.code = new_code
+    if "name" in body and body["name"].strip():
+        course.name = body["name"].strip()
+    if "description" in body:
+        course.description = body["description"].strip()
+    if "department" in body:
+        course.department = body["department"].strip()
+    if "credits" in body:
+        course.credits = int(body["credits"])
+    if "semester" in body:
+        course.semester = body["semester"].strip()
+    if "status" in body:
+        course.status = body["status"].strip()
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "courses:")
+    return jsonify({"message": "Course updated.", "course": course.to_dict()}), 200
+
+
+@admin_bp.route("/courses/<int:course_id>", methods=["DELETE"])
+@role_required("admin")
+def delete_course(course_id):
+    course = db.session.get(Course, course_id)
+    if not course:
+        return jsonify({"error": "Course not found."}), 404
+
+    db.session.delete(course)
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "courses:")
+    return jsonify({"message": "Course removed."}), 200
+
+
+@admin_bp.route("/examinations", methods=["GET"])
+@role_required("admin")
+def list_examinations():
+    cached = cache_get("exams:admin_list")
+    if cached:
+        return jsonify({"examinations": cached, "cached": True}), 200
