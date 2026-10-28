@@ -232,3 +232,42 @@ def create_examination():
         name=name,
         exam_type=etype,
         duration=dur,
+        max_marks=max_m,
+        passing_marks=pass_m,
+        instructions=instr or "Join 5 minutes before the scheduled start time with valid ID.",
+        slot_creation_start=sc_start,
+        slot_creation_end=sc_end,
+        slot_booking_start=sb_start,
+        slot_booking_end=sb_end,
+        status=status,
+        slot_creation_open=sc_open,
+        slot_booking_open=sb_open,
+    )
+    db.session.add(exam)
+    db.session.flush()
+
+    for ex_id in body.get("examiner_ids") or []:
+        fac = db.session.get(User, int(ex_id))
+        if fac and fac.role == "examiner":
+            db.session.add(ExaminerAssignment(examination_id=exam.id, examiner_id=fac.id))
+
+    for r in body.get("rubrics") or []:
+        if r.get("criterion_name"):
+            db.session.add(
+                ExaminationRubric(
+                    examination_id=exam.id,
+                    criterion_name=r["criterion_name"].strip(),
+                    max_marks=float(r.get("max_marks", 25)),
+                    weightage=float(r.get("weightage", 25)),
+                    description=(r.get("description") or "").strip(),
+                )
+            )
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "rubrics:", "slots:")
+    return jsonify({"message": "Examination created.", "examination": exam.to_dict()}), 201
+
+
+@admin_bp.route("/examinations/<int:exam_id>", methods=["PUT"])
+@role_required("admin")
+def update_examination(exam_id):
