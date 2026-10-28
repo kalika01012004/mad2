@@ -193,3 +193,42 @@ def list_examinations():
     cached = cache_get("exams:admin_list")
     if cached:
         return jsonify({"examinations": cached, "cached": True}), 200
+
+    rows = Examination.query.order_by(Examination.created_at.desc()).all()
+    out = [e.to_dict(include_details=True) for e in rows]
+    cache_set("exams:admin_list", out, timeout=90)
+    return jsonify({"examinations": out, "cached": False}), 200
+
+
+@admin_bp.route("/examinations", methods=["POST"])
+@role_required("admin")
+def create_examination():
+    body = request.get_json() or {}
+    cid = body.get("course_id")
+    name = (body.get("name") or "").strip()
+    etype = (body.get("exam_type") or "Viva").strip()
+    dur = int(body.get("duration") or 30)
+    max_m = float(body.get("max_marks") or 100.0)
+    pass_m = float(body.get("passing_marks") or 40.0)
+    instr = (body.get("instructions") or "").strip()
+
+    sc_start = (body.get("slot_creation_start") or "").strip()
+    sc_end = (body.get("slot_creation_end") or "").strip()
+    sb_start = (body.get("slot_booking_start") or "").strip()
+    sb_end = (body.get("slot_booking_end") or "").strip()
+    status = (body.get("status") or "Draft").strip()
+    sc_open = bool(body.get("slot_creation_open", status == "Slot Creation"))
+    sb_open = bool(body.get("slot_booking_open", status == "Booking Open"))
+
+    if not cid or not name:
+        return jsonify({"error": "Course and examination name are required."}), 400
+    if not db.session.get(Course, int(cid)):
+        return jsonify({"error": "Course not found."}), 404
+    if not (sc_start and sc_end and sb_start and sb_end):
+        return jsonify({"error": "Slot creation and booking start/end dates are required."}), 400
+
+    exam = Examination(
+        course_id=int(cid),
+        name=name,
+        exam_type=etype,
+        duration=dur,
