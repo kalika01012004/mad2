@@ -115,3 +115,42 @@ def create_course():
     body = request.get_json() or {}
     code = (body.get("code") or "").strip().upper()
     name = (body.get("name") or "").strip()
+    desc = (body.get("description") or "").strip()
+    dept = (body.get("department") or "Computer Science").strip()
+    credits = int(body.get("credits") or 4)
+    sem = (body.get("semester") or "Term 1 - 2026").strip()
+    status = (body.get("status") or "Active").strip()
+
+    if not code or not name:
+        return jsonify({"error": "Course code and name are required."}), 400
+
+    if Course.query.filter_by(code=code).first():
+        return jsonify({"error": f"Course code '{code}' already exists."}), 409
+
+    course = Course(
+        code=code,
+        name=name,
+        description=desc,
+        department=dept,
+        credits=credits,
+        semester=sem,
+        status=status,
+    )
+    db.session.add(course)
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "courses:")
+    return jsonify({"message": "Course added.", "course": course.to_dict()}), 201
+
+
+@admin_bp.route("/courses/<int:course_id>", methods=["PUT"])
+@role_required("admin")
+def update_course(course_id):
+    course = db.session.get(Course, course_id)
+    if not course:
+        return jsonify({"error": "Course not found."}), 404
+
+    body = request.get_json() or {}
+    if "code" in body and body["code"].strip():
+        new_code = body["code"].strip().upper()
+        dup = Course.query.filter(Course.code == new_code, Course.id != course.id).first()
+        if dup:
