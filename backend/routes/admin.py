@@ -467,3 +467,42 @@ def create_exam_rubric(exam_id):
     db.session.add(rubric)
     db.session.commit()
     cache_invalidate_prefix(f"rubrics:exam:{exam_id}", "exams:")
+    return jsonify({"message": "Rubric added.", "rubric": rubric.to_dict()}), 201
+
+
+@admin_bp.route("/rubrics/<int:rubric_id>", methods=["PUT"])
+@role_required("admin")
+def update_exam_rubric(rubric_id):
+    rubric = db.session.get(ExaminationRubric, rubric_id)
+    if not rubric:
+        return jsonify({"error": "Rubric not found."}), 404
+
+    body = request.get_json() or {}
+    if "criterion_name" in body and body["criterion_name"].strip():
+        rubric.criterion_name = body["criterion_name"].strip()
+    if "max_marks" in body:
+        rubric.max_marks = float(body["max_marks"])
+    if "weightage" in body:
+        rubric.weightage = float(body["weightage"])
+    if "description" in body:
+        rubric.description = body["description"].strip()
+
+    db.session.commit()
+    cache_invalidate_prefix(f"rubrics:exam:{rubric.examination_id}", "exams:")
+    return jsonify({"message": "Rubric updated.", "rubric": rubric.to_dict()}), 200
+
+
+@admin_bp.route("/rubrics/<int:rubric_id>", methods=["DELETE"])
+@role_required("admin")
+def delete_exam_rubric(rubric_id):
+    rubric = db.session.get(ExaminationRubric, rubric_id)
+    if not rubric:
+        return jsonify({"error": "Rubric not found."}), 404
+
+    eid = rubric.examination_id
+    db.session.delete(rubric)
+    db.session.commit()
+    cache_invalidate_prefix(f"rubrics:exam:{eid}", "exams:")
+    return jsonify({"message": "Rubric deleted."}), 200
+
+
