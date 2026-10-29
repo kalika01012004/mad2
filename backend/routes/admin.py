@@ -388,3 +388,43 @@ def publish_examination_results(exam_id):
         return jsonify({"error": "Examination not found."}), 404
 
     body = request.get_json() or {}
+    publish = bool(body.get("publish", True))
+    exam.results_published = publish
+
+    notified = 0
+    if publish:
+        exam.status = "Completed"
+        exam.slot_creation_open = False
+        exam.slot_booking_open = False
+
+        evals = Evaluation.query.filter_by(examination_id=exam.id).all()
+        for ev in evals:
+            ev.status = "Published"
+            if ev.student:
+                db.session.add(
+                    Notification(
+                        user_id=ev.student.id,
+                        title=f"Results Out: {exam.name}",
+                        message=f"Your marks for '{exam.name}': {ev.total_marks} / {exam.max_marks}. Remarks: {ev.remarks or 'Good.'}",
+                        notif_type="result",
+                        action_url=f"/api/student/bookings/{ev.booking_id}/scorecard",
+                    )
+                )
+                send_email_safe(
+                    ev.student.email,
+                    f"Result Published: {exam.name}",
+                    f"<p>Hello {ev.student.name},</p><p>Your result for <strong>{exam.name}</strong> is published.</p>"
+                    f"<p><strong>Marks:</strong> {ev.total_marks} / {exam.max_marks}</p><p><strong>Remarks:</strong> {ev.remarks}</p>",
+                )
+                notified += 1
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    msg = f"Results published for '{exam.name}' ({notified} notified)." if publish else f"Results unpublished for '{exam.name}'."
+    return jsonify({"message": msg, "examination": exam.to_dict()}), 200
+
+
+@admin_bp.route("/examinations/<int:exam_id>/rubrics", methods=["GET"])
+@role_required("admin", "examiner", "student")
+def list_exam_rubrics(exam_id):
+    key = f"rubrics:exam:{exam_id}"
