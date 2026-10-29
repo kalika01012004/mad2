@@ -310,3 +310,42 @@ def update_examination(exam_id):
     if "examiner_ids" in body and isinstance(body["examiner_ids"], list):
         ExaminerAssignment.query.filter_by(examination_id=exam.id).delete()
         for ex_id in body["examiner_ids"]:
+            fac = db.session.get(User, int(ex_id))
+            if fac and fac.role == "examiner":
+                db.session.add(ExaminerAssignment(examination_id=exam.id, examiner_id=fac.id))
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "rubrics:", "slots:")
+    return jsonify({"message": "Examination updated.", "examination": exam.to_dict()}), 200
+
+
+@admin_bp.route("/examinations/<int:exam_id>", methods=["DELETE"])
+@role_required("admin")
+def delete_examination(exam_id):
+    exam = db.session.get(Examination, exam_id)
+    if not exam:
+        return jsonify({"error": "Examination not found."}), 404
+
+    db.session.delete(exam)
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "rubrics:", "slots:")
+    return jsonify({"message": "Examination deleted."}), 200
+
+
+@admin_bp.route("/examinations/<int:exam_id>/toggle-slot-creation", methods=["POST"])
+@role_required("admin")
+def toggle_slot_creation(exam_id):
+    exam = db.session.get(Examination, exam_id)
+    if not exam:
+        return jsonify({"error": "Examination not found."}), 404
+
+    body = request.get_json() or {}
+    exam.slot_creation_open = bool(body["open"]) if "open" in body else (not exam.slot_creation_open)
+
+    if exam.slot_creation_open and exam.status == "Draft":
+        exam.status = "Slot Creation"
+    elif not exam.slot_creation_open and exam.status == "Slot Creation" and not exam.slot_booking_open:
+        exam.status = "Draft"
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
