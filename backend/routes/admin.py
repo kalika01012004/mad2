@@ -428,3 +428,42 @@ def publish_examination_results(exam_id):
 @role_required("admin", "examiner", "student")
 def list_exam_rubrics(exam_id):
     key = f"rubrics:exam:{exam_id}"
+    cached = cache_get(key)
+    if cached is not None:
+        return jsonify({"rubrics": cached, "cached": True}), 200
+
+    exam = db.session.get(Examination, exam_id)
+    if not exam:
+        return jsonify({"error": "Examination not found."}), 404
+
+    rows = [r.to_dict() for r in exam.rubrics]
+    cache_set(key, rows, timeout=180)
+    return jsonify({"rubrics": rows, "cached": False}), 200
+
+
+@admin_bp.route("/examinations/<int:exam_id>/rubrics", methods=["POST"])
+@role_required("admin")
+def create_exam_rubric(exam_id):
+    exam = db.session.get(Examination, exam_id)
+    if not exam:
+        return jsonify({"error": "Examination not found."}), 404
+
+    body = request.get_json() or {}
+    cname = (body.get("criterion_name") or "").strip()
+    max_m = float(body.get("max_marks") or 0)
+    wt = float(body.get("weightage") or 0)
+    desc = (body.get("description") or "").strip()
+
+    if not cname or max_m <= 0:
+        return jsonify({"error": "Criterion name and positive max marks are required."}), 400
+
+    rubric = ExaminationRubric(
+        examination_id=exam.id,
+        criterion_name=cname,
+        max_marks=max_m,
+        weightage=wt,
+        description=desc,
+    )
+    db.session.add(rubric)
+    db.session.commit()
+    cache_invalidate_prefix(f"rubrics:exam:{exam_id}", "exams:")
