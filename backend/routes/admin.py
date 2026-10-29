@@ -349,3 +349,42 @@ def toggle_slot_creation(exam_id):
 
     db.session.commit()
     cache_invalidate_prefix("admin:", "exams:", "slots:")
+    label = "opened" if exam.slot_creation_open else "closed"
+    return jsonify({
+        "message": f"Slot creation {label} for '{exam.name}'.",
+        "examination": exam.to_dict(),
+    }), 200
+
+
+@admin_bp.route("/examinations/<int:exam_id>/toggle-slot-booking", methods=["POST"])
+@role_required("admin")
+def toggle_slot_booking(exam_id):
+    exam = db.session.get(Examination, exam_id)
+    if not exam:
+        return jsonify({"error": "Examination not found."}), 404
+
+    body = request.get_json() or {}
+    exam.slot_booking_open = bool(body["open"]) if "open" in body else (not exam.slot_booking_open)
+
+    if exam.slot_booking_open:
+        exam.status = "Booking Open"
+    elif not exam.slot_booking_open and exam.status == "Booking Open":
+        exam.status = "Closed"
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    label = "opened" if exam.slot_booking_open else "closed"
+    return jsonify({
+        "message": f"Slot booking {label} for '{exam.name}'.",
+        "examination": exam.to_dict(),
+    }), 200
+
+
+@admin_bp.route("/examinations/<int:exam_id>/publish-results", methods=["POST"])
+@role_required("admin")
+def publish_examination_results(exam_id):
+    exam = db.session.get(Examination, exam_id)
+    if not exam:
+        return jsonify({"error": "Examination not found."}), 404
+
+    body = request.get_json() or {}
