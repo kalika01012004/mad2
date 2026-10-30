@@ -623,3 +623,42 @@ def list_students():
 @admin_bp.route("/students/<int:student_id>", methods=["PUT"])
 @role_required("admin")
 def update_student(student_id):
+    st = User.query.filter_by(id=student_id, role="student").first()
+    if not st:
+        return jsonify({"error": "Student not found."}), 404
+
+    body = request.get_json() or {}
+    if "status" in body:
+        st.status = body["status"]
+    if "department" in body:
+        st.department = body["department"]
+    if "roll_number" in body:
+        st.roll_number = body["roll_number"]
+    db.session.commit()
+    return jsonify({"message": "Student updated.", "student": st.to_dict()}), 200
+
+
+@admin_bp.route("/slots", methods=["GET"])
+@role_required("admin")
+def list_all_slots():
+    eid = request.args.get("examination_id", type=int)
+    exm_id = request.args.get("examiner_id", type=int)
+
+    q = ExaminationSlot.query
+    if eid:
+        q = q.filter_by(examination_id=eid)
+    if exm_id:
+        q = q.filter_by(examiner_id=exm_id)
+
+    rows = q.order_by(ExaminationSlot.date.asc(), ExaminationSlot.start_time.asc()).all()
+    return jsonify({"slots": [s.to_dict(include_bookings=True) for s in rows]}), 200
+
+
+@admin_bp.route("/slots/<int:slot_id>/reschedule", methods=["PUT"])
+@role_required("admin")
+def admin_reschedule_slot(slot_id):
+    slot = db.session.get(ExaminationSlot, slot_id)
+    if not slot:
+        return jsonify({"error": "Slot not found."}), 404
+
+    body = request.get_json() or {}
