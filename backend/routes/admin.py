@@ -584,3 +584,42 @@ def update_examiner(examiner_id):
         exm.designation = body["designation"].strip()
     if "specialization" in body:
         exm.specialization = body["specialization"].strip()
+    if "status" in body:
+        exm.status = body["status"].strip()
+    if body.get("password"):
+        exm.set_password(body["password"])
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:")
+    return jsonify({"message": "Examiner updated.", "examiner": exm.to_dict()}), 200
+
+
+@admin_bp.route("/examiners/<int:examiner_id>", methods=["DELETE"])
+@role_required("admin")
+def delete_examiner(examiner_id):
+    exm = User.query.filter_by(id=examiner_id, role="examiner").first()
+    if not exm:
+        return jsonify({"error": "Examiner not found."}), 404
+
+    db.session.delete(exm)
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:")
+    return jsonify({"message": "Examiner removed."}), 200
+
+
+@admin_bp.route("/students", methods=["GET"])
+@role_required("admin")
+def list_students():
+    rows = User.query.filter_by(role="student").order_by(User.created_at.desc()).all()
+    out = []
+    for st in rows:
+        item = st.to_dict()
+        item["bookings_count"] = Booking.query.filter_by(student_id=st.id).count()
+        item["evaluations_count"] = Evaluation.query.filter_by(student_id=st.id).count()
+        out.append(item)
+    return jsonify({"students": out}), 200
+
+
+@admin_bp.route("/students/<int:student_id>", methods=["PUT"])
+@role_required("admin")
+def update_student(student_id):
