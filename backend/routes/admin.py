@@ -662,3 +662,42 @@ def admin_reschedule_slot(slot_id):
         return jsonify({"error": "Slot not found."}), 404
 
     body = request.get_json() or {}
+    prev_slot_str = f"{slot.date} ({slot.start_time}-{slot.end_time})"
+
+    if "date" in body and body["date"].strip():
+        slot.date = body["date"].strip()
+    if "start_time" in body and body["start_time"].strip():
+        slot.start_time = body["start_time"].strip()
+    if "end_time" in body and body["end_time"].strip():
+        slot.end_time = body["end_time"].strip()
+    if "meeting_link" in body:
+        slot.meeting_link = body["meeting_link"].strip()
+    if "venue" in body:
+        slot.venue = body["venue"].strip()
+    if "max_capacity" in body:
+        slot.max_capacity = int(body["max_capacity"])
+        slot.recalculate_seats()
+    if "status" in body:
+        slot.status = body["status"].strip()
+
+    if "examiner_id" in body and body["examiner_id"]:
+        new_ex = User.query.filter_by(id=int(body["examiner_id"]), role="examiner").first()
+        if not new_ex:
+            return jsonify({"error": "Examiner not found."}), 404
+        slot.examiner_id = new_ex.id
+        if not ExaminerAssignment.query.filter_by(examination_id=slot.examination_id, examiner_id=new_ex.id).first():
+            db.session.add(ExaminerAssignment(examination_id=slot.examination_id, examiner_id=new_ex.id))
+
+    for bk in slot.bookings:
+        if bk.status == "Booked":
+            bk.rescheduled_by_admin = True
+            bk.admin_notes = body.get("reason") or f"Updated from {prev_slot_str} to {slot.date} ({slot.start_time}-{slot.end_time})."
+            db.session.add(
+                Notification(
+                    user_id=bk.student_id,
+                    title="Examination Slot Updated",
+                    message=(
+                        f"Your slot for '{slot.examination.name}' is now on {slot.date} "
+                        f"({slot.start_time}-{slot.end_time}) with {slot.examiner.name if slot.examiner else ''}."
+                    ),
+                    notif_type="booking",
