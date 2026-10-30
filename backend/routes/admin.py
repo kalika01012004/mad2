@@ -545,3 +545,42 @@ def create_examiner():
     exm = User(
         name=name,
         email=email,
+        username=uname,
+        role="examiner",
+        contact_details=contact,
+        department=dept,
+        designation=desig,
+        specialization=spec,
+        status=status,
+    )
+    exm.set_password(pwd)
+    db.session.add(exm)
+    db.session.flush()
+
+    for eid in body.get("examination_ids") or []:
+        if db.session.get(Examination, int(eid)):
+            db.session.add(ExaminerAssignment(examination_id=int(eid), examiner_id=exm.id))
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:")
+    return jsonify({"message": "Examiner added.", "examiner": exm.to_dict()}), 201
+
+
+@admin_bp.route("/examiners/<int:examiner_id>", methods=["PUT"])
+@role_required("admin")
+def update_examiner(examiner_id):
+    exm = User.query.filter_by(id=examiner_id, role="examiner").first()
+    if not exm:
+        return jsonify({"error": "Examiner not found."}), 404
+
+    body = request.get_json() or {}
+    if "name" in body and body["name"].strip():
+        exm.name = body["name"].strip()
+    if "contact_details" in body:
+        exm.contact_details = body["contact_details"].strip()
+    if "department" in body:
+        exm.department = body["department"].strip()
+    if "designation" in body:
+        exm.designation = body["designation"].strip()
+    if "specialization" in body:
+        exm.specialization = body["specialization"].strip()
