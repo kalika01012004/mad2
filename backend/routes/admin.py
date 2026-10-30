@@ -506,3 +506,42 @@ def delete_exam_rubric(rubric_id):
     return jsonify({"message": "Rubric deleted."}), 200
 
 
+@admin_bp.route("/examiners", methods=["GET"])
+@role_required("admin")
+def list_examiners():
+    rows = User.query.filter_by(role="examiner").order_by(User.name.asc()).all()
+    out = []
+    for ex in rows:
+        item = ex.to_dict()
+        item["assigned_exams_count"] = ExaminerAssignment.query.filter_by(examiner_id=ex.id).count()
+        item["slots_count"] = ExaminationSlot.query.filter_by(examiner_id=ex.id).count()
+        item["evaluations_count"] = Evaluation.query.filter_by(examiner_id=ex.id).count()
+        out.append(item)
+    return jsonify({"examiners": out}), 200
+
+
+@admin_bp.route("/examiners", methods=["POST"])
+@role_required("admin")
+def create_examiner():
+    body = request.get_json() or {}
+    name = (body.get("name") or "").strip()
+    email = (body.get("email") or "").strip().lower()
+    uname = (body.get("username") or "").strip().lower() or (email.split("@")[0] if email else "")
+    pwd = body.get("password") or "examiner123"
+    contact = (body.get("contact_details") or "").strip()
+    dept = (body.get("department") or "Computer Science").strip()
+    desig = (body.get("designation") or "Assistant Professor").strip()
+    spec = (body.get("specialization") or "").strip()
+    status = (body.get("status") or "Active").strip()
+
+    if not name or not email:
+        return jsonify({"error": "Name and email are required."}), 400
+    if len(pwd) < 6:
+        return jsonify({"error": "Password must be at least 6 characters."}), 400
+
+    if User.query.filter((User.email == email) | (User.username == uname)).first():
+        return jsonify({"error": "User with this email or username already exists."}), 409
+
+    exm = User(
+        name=name,
+        email=email,
