@@ -779,3 +779,42 @@ def admin_reschedule_booking(booking_id):
 
 @admin_bp.route("/search", methods=["GET"])
 @role_required("admin")
+def admin_search():
+    q = (request.args.get("q") or "").strip().lower()
+    cat = (request.args.get("category") or "all").strip().lower()
+
+    st_list = []
+    exm_list = []
+    ex_list = []
+    bk_list = []
+
+    if cat in ("all", "students"):
+        for s in User.query.filter_by(role="student").all():
+            if not q or q in s.name.lower() or q in s.email.lower() or q in (s.roll_number or "").lower() or q in (s.department or "").lower():
+                st_list.append(s.to_dict())
+
+    if cat in ("all", "examiners"):
+        for e in User.query.filter_by(role="examiner").all():
+            if not q or q in e.name.lower() or q in e.email.lower() or q in (e.department or "").lower() or q in (e.specialization or "").lower():
+                exm_list.append(e.to_dict())
+
+    if cat in ("all", "examinations"):
+        for ex in Examination.query.all():
+            if (
+                not q
+                or q in ex.name.lower()
+                or q in ex.exam_type.lower()
+                or q in ex.status.lower()
+                or (ex.course and (q in ex.course.code.lower() or q in ex.course.name.lower()))
+            ):
+                ex_list.append(ex.to_dict(include_details=True))
+
+    if cat in ("all", "bookings"):
+        for b in Booking.query.order_by(Booking.booking_date.desc()).all():
+            bd = b.to_dict()
+            if (
+                not q
+                or q in bd["student_name"].lower()
+                or q in bd["student_email"].lower()
+                or q in bd["student_roll_number"].lower()
+                or q in bd["examination_name"].lower()
