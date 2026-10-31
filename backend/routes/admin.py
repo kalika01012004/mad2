@@ -740,3 +740,42 @@ def admin_reschedule_booking(booking_id):
 
     new_slot = db.session.get(ExaminationSlot, int(target_id))
     if not new_slot:
+        return jsonify({"error": "Target slot not found."}), 404
+    if new_slot.examination_id != bk.examination_id:
+        return jsonify({"error": "Target slot belongs to a different examination."}), 400
+    if new_slot.available_seats <= 0 and new_slot.id != bk.slot_id:
+        return jsonify({"error": "Target slot is full."}), 400
+
+    old_slot = bk.slot
+    bk.slot_id = new_slot.id
+    bk.rescheduled_by_admin = True
+    bk.admin_notes = reason
+    if bk.status == "Cancelled":
+        bk.status = "Booked"
+
+    db.session.flush()
+    if old_slot:
+        old_slot.recalculate_seats()
+    new_slot.recalculate_seats()
+
+    if bk.evaluation:
+        bk.evaluation.examiner_id = new_slot.examiner_id
+
+    db.session.add(
+        Notification(
+            user_id=bk.student_id,
+            title=f"Booking Rescheduled: {bk.examination.name}",
+            message=(
+                f"Your booking was moved to {new_slot.date} ({new_slot.start_time}-{new_slot.end_time}) "
+                f"with {new_slot.examiner.name if new_slot.examiner else ''}. Note: {reason}"
+            ),
+            notif_type="booking",
+        )
+    )
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    return jsonify({"message": "Booking rescheduled.", "booking": bk.to_dict()}), 200
+
+
+@admin_bp.route("/search", methods=["GET"])
+@role_required("admin")
