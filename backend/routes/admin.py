@@ -701,3 +701,42 @@ def admin_reschedule_slot(slot_id):
                         f"({slot.start_time}-{slot.end_time}) with {slot.examiner.name if slot.examiner else ''}."
                     ),
                     notif_type="booking",
+                )
+            )
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    return jsonify({"message": "Slot updated.", "slot": slot.to_dict(include_bookings=True)}), 200
+
+
+@admin_bp.route("/bookings", methods=["GET"])
+@role_required("admin")
+def list_all_bookings():
+    eid = request.args.get("examination_id", type=int)
+    st = request.args.get("status")
+    q = Booking.query
+    if eid:
+        q = q.filter_by(examination_id=eid)
+    if st:
+        q = q.filter_by(status=st)
+
+    rows = q.order_by(Booking.booking_date.desc()).all()
+    return jsonify({"bookings": [b.to_dict() for b in rows]}), 200
+
+
+@admin_bp.route("/bookings/<int:booking_id>/reschedule", methods=["PUT"])
+@role_required("admin")
+def admin_reschedule_booking(booking_id):
+    bk = db.session.get(Booking, booking_id)
+    if not bk:
+        return jsonify({"error": "Booking not found."}), 404
+
+    body = request.get_json() or {}
+    target_id = body.get("new_slot_id")
+    reason = (body.get("reason") or "Rescheduled by Admin.").strip()
+
+    if not target_id:
+        return jsonify({"error": "new_slot_id is required."}), 400
+
+    new_slot = db.session.get(ExaminationSlot, int(target_id))
+    if not new_slot:
