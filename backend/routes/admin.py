@@ -818,3 +818,42 @@ def admin_search():
                 or q in bd["student_email"].lower()
                 or q in bd["student_roll_number"].lower()
                 or q in bd["examination_name"].lower()
+                or q in bd["examiner_name"].lower()
+                or q in bd["status"].lower()
+                or q in bd["slot_date"].lower()
+            ):
+                bk_list.append(bd)
+
+    return jsonify({
+        "query": q,
+        "students": st_list,
+        "examiners": exm_list,
+        "examinations": ex_list,
+        "bookings": bk_list,
+    }), 200
+
+
+@admin_bp.route("/jobs/daily-reminder", methods=["POST"])
+@role_required("admin")
+def trigger_daily_reminder_job():
+    info = dispatch_task(send_daily_exam_reminders, triggered_by="admin")
+    return jsonify({"message": "Daily reminder job finished.", "dispatch": info}), 200
+
+
+@admin_bp.route("/jobs/monthly-report", methods=["POST"])
+@role_required("admin")
+def trigger_monthly_report_job():
+    info = dispatch_task(generate_monthly_exam_report, triggered_by="admin")
+    return jsonify({"message": "Monthly report generated.", "dispatch": info}), 200
+
+
+@admin_bp.route("/jobs/logs", methods=["GET"])
+@role_required("admin")
+def get_job_logs():
+    rows = JobExecutionLog.query.order_by(JobExecutionLog.created_at.desc()).limit(30).all()
+    return jsonify({"logs": [r.to_dict() for r in rows]}), 200
+
+
+@admin_bp.route("/reports/download/<path:filename>", methods=["GET"])
+def download_admin_report(filename):
+    return send_from_directory(Config.REPORTS_FOLDER, filename, as_attachment=True)
