@@ -122,3 +122,34 @@ def create_slot():
                     "error": f"Overlaps with your existing slot ({es.start_time} - {es.end_time}) on {s_date}."
                 }), 409
 
+    slot = ExaminationSlot(
+        examination_id=exam.id,
+        examiner_id=usr.id,
+        date=s_date,
+        start_time=start_t,
+        end_time=end_t,
+        max_capacity=cap,
+        available_seats=cap,
+        status="Available",
+        meeting_link=link,
+        venue=venue,
+    )
+    db.session.add(slot)
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    return jsonify({"message": "Slot created.", "slot": slot.to_dict()}), 201
+
+
+@examiner_bp.route("/slots/<int:slot_id>", methods=["PUT"])
+@role_required("examiner")
+def update_slot(slot_id):
+    usr = get_current_user()
+    slot = ExaminationSlot.query.filter_by(id=slot_id, examiner_id=usr.id).first()
+    if not slot:
+        return jsonify({"error": "Slot not found."}), 404
+
+    exam = slot.examination
+    body = request.get_json() or {}
+
+    schedule_edit = any(k in body for k in ("date", "start_time", "end_time", "max_capacity"))
+    active_bk = [b for b in slot.bookings if b.status != "Cancelled"]
