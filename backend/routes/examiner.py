@@ -153,3 +153,34 @@ def update_slot(slot_id):
 
     schedule_edit = any(k in body for k in ("date", "start_time", "end_time", "max_capacity"))
     active_bk = [b for b in slot.bookings if b.status != "Cancelled"]
+
+    if schedule_edit and (exam.has_booking_started() or len(active_bk) > 0):
+        return jsonify({
+            "error": "Cannot modify slot timing or capacity after booking starts or once students have booked."
+        }), 400
+
+    if "date" in body and body["date"].strip():
+        slot.date = body["date"].strip()
+    if "start_time" in body and body["start_time"].strip():
+        slot.start_time = body["start_time"].strip()
+    if "end_time" in body and body["end_time"].strip():
+        slot.end_time = body["end_time"].strip()
+    if slot.start_time >= slot.end_time:
+        return jsonify({"error": "End time must be after start time."}), 400
+
+    if "max_capacity" in body:
+        new_cap = int(body["max_capacity"])
+        if new_cap < len(active_bk) or new_cap < 1:
+            return jsonify({"error": "Invalid capacity."}), 400
+        slot.max_capacity = new_cap
+        slot.recalculate_seats()
+
+    if "meeting_link" in body:
+        slot.meeting_link = body["meeting_link"].strip()
+    if "venue" in body:
+        slot.venue = body["venue"].strip()
+    if "status" in body and body["status"] in ("Available", "Completed", "Cancelled"):
+        slot.status = body["status"]
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
