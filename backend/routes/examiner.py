@@ -29,3 +29,34 @@ def examiner_dashboard():
         .all()
     )
     for s in slots:
+        exam_ids.add(s.examination_id)
+
+    exams = Examination.query.filter(Examination.id.in_(exam_ids)).all() if exam_ids else []
+    slot_ids = [s.id for s in slots]
+
+    bookings = (
+        Booking.query.filter(Booking.slot_id.in_(slot_ids), Booking.status != "Cancelled")
+        .order_by(Booking.booking_date.desc())
+        .all()
+        if slot_ids
+        else []
+    )
+
+    pending = sum(1 for b in bookings if not b.evaluation)
+    done = sum(1 for b in bookings if b.evaluation)
+
+    return jsonify({
+        "summary": {
+            "assigned_examinations_count": len(exams),
+            "created_slots_count": len(slots),
+            "booked_students_count": len(bookings),
+            "pending_evaluations_count": pending,
+            "completed_evaluations_count": done,
+        },
+        "assigned_examinations": [e.to_dict(include_details=True) for e in exams],
+        "slots": [s.to_dict(include_bookings=True) for s in slots],
+        "bookings": [b.to_dict() for b in bookings],
+    }), 200
+
+
+@examiner_bp.route("/examinations", methods=["GET"])
