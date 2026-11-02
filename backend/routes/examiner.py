@@ -184,3 +184,34 @@ def update_slot(slot_id):
 
     db.session.commit()
     cache_invalidate_prefix("admin:", "exams:", "slots:")
+    return jsonify({"message": "Slot updated.", "slot": slot.to_dict(include_bookings=True)}), 200
+
+
+@examiner_bp.route("/slots/<int:slot_id>", methods=["DELETE"])
+@role_required("examiner")
+def delete_slot(slot_id):
+    usr = get_current_user()
+    slot = ExaminationSlot.query.filter_by(id=slot_id, examiner_id=usr.id).first()
+    if not slot:
+        return jsonify({"error": "Slot not found."}), 404
+
+    exam = slot.examination
+    active_bk = [b for b in slot.bookings if b.status != "Cancelled"]
+    if exam.has_booking_started() or len(active_bk) > 0:
+        return jsonify({
+            "error": "Cannot remove slot after booking has started or when students are booked."
+        }), 400
+
+    db.session.delete(slot)
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    return jsonify({"message": "Slot deleted."}), 200
+
+
+@examiner_bp.route("/bookings/<int:booking_id>/evaluate", methods=["POST"])
+@role_required("examiner")
+def evaluate_student(booking_id):
+    usr = get_current_user()
+    bk = db.session.get(Booking, booking_id)
+    if not bk:
+        return jsonify({"error": "Booking not found."}), 404
