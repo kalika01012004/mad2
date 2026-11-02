@@ -215,3 +215,34 @@ def evaluate_student(booking_id):
     bk = db.session.get(Booking, booking_id)
     if not bk:
         return jsonify({"error": "Booking not found."}), 404
+
+    if not bk.slot or bk.slot.examiner_id != usr.id:
+        return jsonify({"error": "You can only evaluate students booked in your own slots."}), 403
+
+    if bk.status == "Cancelled":
+        return jsonify({"error": "Cannot evaluate a cancelled booking."}), 400
+
+    exam = bk.examination
+    body = request.get_json() or {}
+    remarks = (body.get("remarks") or "").strip()
+    scores = body.get("rubric_scores") or []
+
+    rubric_map = {r.id: r for r in exam.rubrics}
+    breakdown = []
+    total = 0.0
+
+    if scores and rubric_map:
+        for item in scores:
+            rid = int(item.get("rubric_id", 0))
+            robj = rubric_map.get(rid)
+            if not robj:
+                continue
+            pts = float(item.get("marks_awarded", 0))
+            if pts < 0 or pts > robj.max_marks:
+                return jsonify({
+                    "error": f"Marks for '{robj.criterion_name}' must be between 0 and {robj.max_marks}."
+                }), 400
+            total += pts
+            breakdown.append({
+                "rubric_id": robj.id,
+                "criterion_name": robj.criterion_name,
