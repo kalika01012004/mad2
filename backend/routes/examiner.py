@@ -277,3 +277,34 @@ def evaluate_student(booking_id):
 
     bk.status = "Completed"
 
+    slot = bk.slot
+    if all(b.status == "Completed" for b in slot.bookings if b.status != "Cancelled"):
+        slot.status = "Completed"
+
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+
+    return jsonify({
+        "message": "Evaluation saved.",
+        "evaluation": ev.to_dict(),
+        "booking": bk.to_dict(),
+    }), 200
+
+
+@examiner_bp.route("/bookings/<int:booking_id>/status", methods=["PUT"])
+@role_required("examiner")
+def update_booking_exam_status(booking_id):
+    usr = get_current_user()
+    bk = db.session.get(Booking, booking_id)
+    if not bk or not bk.slot or bk.slot.examiner_id != usr.id:
+        return jsonify({"error": "Booking not found in your slots."}), 404
+
+    body = request.get_json() or {}
+    new_st = (body.get("status") or "Completed").strip()
+    if new_st not in ("Booked", "Completed"):
+        return jsonify({"error": "Invalid status."}), 400
+
+    bk.status = new_st
+    db.session.commit()
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    return jsonify({"message": f"Status updated to {new_st}.", "booking": bk.to_dict()}), 200
