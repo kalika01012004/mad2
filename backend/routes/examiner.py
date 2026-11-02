@@ -246,3 +246,34 @@ def evaluate_student(booking_id):
             breakdown.append({
                 "rubric_id": robj.id,
                 "criterion_name": robj.criterion_name,
+                "max_marks": robj.max_marks,
+                "weightage": robj.weightage,
+                "marks_awarded": pts,
+                "comment": (item.get("comment") or "").strip(),
+            })
+    else:
+        if "total_marks" not in body:
+            return jsonify({"error": "Provide rubric_scores or total_marks."}), 400
+        total = float(body["total_marks"])
+
+    if total < 0 or total > exam.max_marks:
+        return jsonify({"error": f"Total marks ({total}) cannot exceed {exam.max_marks}."}), 400
+
+    ev = bk.evaluation
+    if not ev:
+        ev = Evaluation(
+            booking_id=bk.id,
+            student_id=bk.student_id,
+            examiner_id=usr.id,
+            examination_id=exam.id,
+        )
+        db.session.add(ev)
+
+    ev.total_marks = round(total, 2)
+    ev.remarks = remarks
+    ev.rubric_breakdown = json.dumps(breakdown)
+    ev.evaluation_date = datetime.now(timezone.utc)
+    ev.status = "Published" if exam.results_published else "Submitted"
+
+    bk.status = "Completed"
+
