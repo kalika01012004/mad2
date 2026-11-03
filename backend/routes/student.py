@@ -57,3 +57,33 @@ def student_dashboard():
     booked_exam_ids = [b["examination_id"] for b in bk_dicts if b["status"] in ("Booked", "Completed")]
     published = [b for b in bk_dicts if b["evaluation"] and b["results_published"]]
     courses = Course.query.filter_by(status="Active").order_by(Course.code.asc()).all()
+
+    return jsonify({
+        "summary": {
+            "available_examinations_count": len(exams_list),
+            "available_slots_count": len(slots_list),
+            "upcoming_examinations_count": len(upcoming),
+            "total_bookings_count": len(bk_dicts),
+            "published_results_count": len(published),
+        },
+        "courses": [c.to_dict() for c in courses],
+        "available_examinations": exams_list,
+        "available_slots": slots_list,
+        "upcoming_examinations": upcoming,
+        "bookings": bk_dicts,
+        "active_booked_exam_ids": booked_exam_ids,
+        "published_results": published,
+    }), 200
+
+
+@student_bp.route("/examinations", methods=["GET"])
+@role_required("student")
+def search_examinations():
+    q = (request.args.get("q") or "").strip().lower()
+    cid = request.args.get("course_id", type=int)
+    etype = (request.args.get("exam_type") or "").strip()
+    st = (request.args.get("status") or "").strip()
+
+    key = f"exams:search:{q}:{cid}:{etype}:{st}"
+    cached = cache_get(key)
+    if cached is not None:
