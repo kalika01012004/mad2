@@ -116,3 +116,33 @@ def list_examination_slots_for_student(exam_id):
     key = f"slots:exam:{exam_id}"
     cached = cache_get(key)
     if cached is not None:
+        return jsonify({"slots": cached, "cached": True}), 200
+
+    exam = db.session.get(Examination, exam_id)
+    if not exam or exam.status == "Draft":
+        return jsonify({"error": "Examination not found."}), 404
+
+    rows = (
+        ExaminationSlot.query.filter_by(examination_id=exam.id)
+        .filter(ExaminationSlot.status != "Cancelled")
+        .order_by(ExaminationSlot.date.asc(), ExaminationSlot.start_time.asc())
+        .all()
+    )
+    out = [s.to_dict(include_bookings=False) for s in rows]
+    cache_set(key, out, timeout=60)
+    return jsonify({"slots": out, "cached": False}), 200
+
+
+@student_bp.route("/bookings", methods=["GET"])
+@role_required("student")
+def list_my_bookings():
+    usr = get_current_user()
+    rows = Booking.query.filter_by(student_id=usr.id).order_by(Booking.booking_date.desc()).all()
+    return jsonify({"bookings": [b.to_dict() for b in rows]}), 200
+
+
+@student_bp.route("/bookings", methods=["POST"])
+@role_required("student")
+def book_slot():
+    usr = get_current_user()
+    body = request.get_json() or {}
