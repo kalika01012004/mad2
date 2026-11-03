@@ -87,3 +87,32 @@ def search_examinations():
     key = f"exams:search:{q}:{cid}:{etype}:{st}"
     cached = cache_get(key)
     if cached is not None:
+        return jsonify({"examinations": cached, "cached": True}), 200
+
+    qry = Examination.query.filter(Examination.status != "Draft")
+    if cid:
+        qry = qry.filter_by(course_id=cid)
+    if etype:
+        qry = qry.filter_by(exam_type=etype)
+    if st:
+        qry = qry.filter_by(status=st)
+
+    rows = qry.order_by(Examination.created_at.desc()).all()
+    out = []
+    for ex in rows:
+        if q:
+            cmatch = ex.course and (q in ex.course.code.lower() or q in ex.course.name.lower())
+            if not (q in ex.name.lower() or q in ex.exam_type.lower() or cmatch):
+                continue
+        out.append(ex.to_dict(include_details=True))
+
+    cache_set(key, out, timeout=90)
+    return jsonify({"examinations": out, "cached": False}), 200
+
+
+@student_bp.route("/examinations/<int:exam_id>/slots", methods=["GET"])
+@role_required("student")
+def list_examination_slots_for_student(exam_id):
+    key = f"slots:exam:{exam_id}"
+    cached = cache_get(key)
+    if cached is not None:
