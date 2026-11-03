@@ -28,3 +28,32 @@ def student_dashboard():
             Examination.query.filter(Examination.status != "Draft")
             .order_by(Examination.created_at.desc())
             .all()
+        )
+        exams_list = [e.to_dict(include_details=True) for e in rows]
+        cache_set("exams:student_available", exams_list, timeout=90)
+
+    slots_list = cache_get("slots:student_available")
+    if slots_list is None:
+        open_rows = (
+            ExaminationSlot.query.filter(
+                ExaminationSlot.status == "Available",
+                ExaminationSlot.available_seats > 0,
+            )
+            .order_by(ExaminationSlot.date.asc(), ExaminationSlot.start_time.asc())
+            .all()
+        )
+        slots_list = [s.to_dict() for s in open_rows if s.examination and s.examination.status != "Draft"]
+        cache_set("slots:student_available", slots_list, timeout=60)
+
+    my_bk = (
+        Booking.query.filter_by(student_id=usr.id)
+        .order_by(Booking.booking_date.desc())
+        .all()
+    )
+    bk_dicts = [b.to_dict() for b in my_bk]
+
+    today_str = date.today().isoformat()
+    upcoming = [b for b in bk_dicts if b["status"] == "Booked" and b["slot_date"] >= today_str]
+    booked_exam_ids = [b["examination_id"] for b in bk_dicts if b["status"] in ("Booked", "Completed")]
+    published = [b for b in bk_dicts if b["evaluation"] and b["results_published"]]
+    courses = Course.query.filter_by(status="Active").order_by(Course.code.asc()).all()
