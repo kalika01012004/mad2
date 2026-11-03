@@ -146,3 +146,33 @@ def list_my_bookings():
 def book_slot():
     usr = get_current_user()
     body = request.get_json() or {}
+    sid = body.get("slot_id")
+    if not sid:
+        return jsonify({"error": "slot_id is required."}), 400
+
+    slot = db.session.get(ExaminationSlot, int(sid))
+    if not slot:
+        return jsonify({"error": "Slot not found."}), 404
+
+    exam = slot.examination
+    if not exam:
+        return jsonify({"error": "Examination not found."}), 404
+
+    if not exam.is_slot_booking_allowed():
+        return jsonify({
+            "error": f"Booking is closed for '{exam.name}' ({exam.slot_booking_start} to {exam.slot_booking_end})."
+        }), 400
+
+    existing = Booking.query.filter(
+        Booking.student_id == usr.id,
+        Booking.examination_id == exam.id,
+        Booking.status.in_(["Booked", "Completed"]),
+    ).first()
+    if existing:
+        return jsonify({
+            "error": f"You already have a booking for '{exam.name}'. Only one slot is allowed per examination."
+        }), 409
+
+    slot.recalculate_seats()
+    if slot.status != "Available" or slot.available_seats <= 0:
+        return jsonify({"error": "This slot is full or unavailable."}), 400
