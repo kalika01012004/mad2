@@ -235,3 +235,32 @@ def cancel_booking(booking_id):
     if slot:
         slot.recalculate_seats()
 
+    db.session.add(
+        Notification(
+            user_id=usr.id,
+            title=f"Booking Cancelled: {exam.name if exam else 'Examination'}",
+            message=f"Cancelled booking for '{exam.name if exam else ''}' on {slot.date if slot else ''}.",
+            notif_type="cancellation",
+        )
+    )
+    db.session.commit()
+
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    return jsonify({"message": "Booking cancelled.", "booking": bk.to_dict()}), 200
+
+
+@student_bp.route("/results", methods=["GET"])
+@role_required("student")
+def view_published_results():
+    usr = get_current_user()
+    rows = Booking.query.filter_by(student_id=usr.id).order_by(Booking.booking_date.desc()).all()
+    out = [b.to_dict() for b in rows if b.evaluation and b.examination and b.examination.results_published]
+    return jsonify({"results": out}), 200
+
+
+@student_bp.route("/bookings/<int:booking_id>/scorecard", methods=["GET"])
+@role_required("student", "admin")
+def download_scorecard(booking_id):
+    usr = get_current_user()
+    bk = db.session.get(Booking, booking_id)
+    if not bk:
