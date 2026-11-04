@@ -205,3 +205,33 @@ def book_slot():
     return jsonify({
         "message": "Slot booked.",
         "booking": bk.to_dict(),
+        "slot": slot.to_dict(),
+    }), 201
+
+
+@student_bp.route("/bookings/<int:booking_id>/cancel", methods=["POST"])
+@role_required("student")
+def cancel_booking(booking_id):
+    usr = get_current_user()
+    bk = Booking.query.filter_by(id=booking_id, student_id=usr.id).first()
+    if not bk:
+        return jsonify({"error": "Booking not found."}), 404
+
+    if bk.status != "Booked":
+        return jsonify({"error": f"Cannot cancel booking with status '{bk.status}'."}), 400
+
+    if bk.evaluation:
+        return jsonify({"error": "Cannot cancel an evaluated booking."}), 400
+
+    exam = bk.examination
+    today_str = date.today().isoformat()
+
+    if exam and exam.slot_booking_end and today_str > exam.slot_booking_end and not exam.slot_booking_open:
+        return jsonify({"error": f"Cancellation deadline ({exam.slot_booking_end}) has passed."}), 400
+
+    bk.status = "Cancelled"
+    slot = bk.slot
+    db.session.flush()
+    if slot:
+        slot.recalculate_seats()
+
