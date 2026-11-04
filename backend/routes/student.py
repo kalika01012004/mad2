@@ -264,3 +264,33 @@ def download_scorecard(booking_id):
     usr = get_current_user()
     bk = db.session.get(Booking, booking_id)
     if not bk:
+        return jsonify({"error": "Booking not found."}), 404
+    if usr.role == "student" and bk.student_id != usr.id:
+        return jsonify({"error": "Access denied."}), 403
+    if not bk.evaluation or (usr.role == "student" and not bk.examination.results_published):
+        return jsonify({"error": "Scorecard not available yet."}), 400
+
+    pdf = generate_student_scorecard_pdf(bk.id)
+    if not pdf or not os.path.exists(pdf):
+        return jsonify({"error": "Could not generate scorecard PDF."}), 500
+
+    return send_file(pdf, as_attachment=True, download_name=os.path.basename(pdf))
+
+
+@student_bp.route("/exports/csv", methods=["POST"])
+@role_required("student")
+def trigger_csv_export():
+    usr = get_current_user()
+    info = dispatch_task(export_student_exam_history_csv, usr.id)
+    res = info.get("result") or {}
+    return jsonify({
+        "message": "Examination history CSV exported.",
+        "dispatch": info,
+        "download_url": res.get("download_url"),
+        "filename": res.get("filename"),
+    }), 200
+
+
+@student_bp.route("/exports/download/<path:filename>", methods=["GET"])
+def download_csv_export(filename):
+    return send_from_directory(Config.EXPORTS_FOLDER, filename, as_attachment=True)
