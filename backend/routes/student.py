@@ -176,3 +176,32 @@ def book_slot():
     slot.recalculate_seats()
     if slot.status != "Available" or slot.available_seats <= 0:
         return jsonify({"error": "This slot is full or unavailable."}), 400
+
+    bk = Booking(
+        student_id=usr.id,
+        slot_id=slot.id,
+        examination_id=exam.id,
+        status="Booked",
+    )
+    db.session.add(bk)
+    db.session.flush()
+
+    slot.recalculate_seats()
+
+    db.session.add(
+        Notification(
+            user_id=usr.id,
+            title=f"Slot Booked: {exam.name}",
+            message=(
+                f"Booked slot on {slot.date} ({slot.start_time}-{slot.end_time}) "
+                f"with {slot.examiner.name if slot.examiner else ''}."
+            ),
+            notif_type="booking",
+        )
+    )
+    db.session.commit()
+
+    cache_invalidate_prefix("admin:", "exams:", "slots:")
+    return jsonify({
+        "message": "Slot booked.",
+        "booking": bk.to_dict(),
