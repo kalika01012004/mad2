@@ -111,3 +111,41 @@ def send_daily_exam_reminders(triggered_by="celery-beat"):
 
     preview = (
         f"<div><h5>Daily Examination Reminders ({count} sent)</h5>"
+        + ("".join(cards) if cards else "<p>No upcoming bookings found.</p>")
+        + "</div>"
+    )
+
+    log_row = JobExecutionLog(
+        job_name="daily_reminder",
+        triggered_by=triggered_by,
+        status="Completed",
+        summary=f"Sent daily reminders for {count} upcoming booking(s).",
+        html_preview=preview,
+    )
+    db.session.add(log_row)
+    db.session.commit()
+
+    return {
+        "job": "daily_reminder",
+        "reminded_count": count,
+        "log_id": log_row.id,
+        "summary": log_row.summary,
+    }
+
+
+@celery_app.task(name="tasks.generate_monthly_exam_report")
+def generate_monthly_exam_report(triggered_by="celery-beat"):
+    now = datetime.now(timezone.utc)
+    month_name = now.strftime("%B %Y")
+
+    total_exams = Examination.query.count()
+    conducted = Examination.query.filter(Examination.status.in_(["Booking Open", "Closed", "Completed"])).count()
+    evaluated = Evaluation.query.count()
+    completed_bk = Booking.query.filter_by(status="Completed").count()
+    active_bk = Booking.query.filter_by(status="Booked").count()
+
+    non_cancelled = Booking.query.filter(Booking.status.in_(["Booked", "Completed"])).all()
+    pending_evals = sum(1 for b in non_cancelled if not b.evaluation)
+
+    examiners = User.query.filter_by(role="examiner").all()
+    ex_rows = []
