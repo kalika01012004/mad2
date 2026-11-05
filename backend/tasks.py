@@ -73,3 +73,41 @@ def send_daily_exam_reminders(triggered_by="celery-beat"):
                 f"Examination: {exam.name} ({exam.course.code if exam.course else ''})\n"
                 f"Date & Time: {slot.date} | {slot.start_time} - {slot.end_time}\n"
                 f"Examiner: {examiner_name}\n"
+                f"Venue: {slot.venue or 'Online'} {slot.meeting_link or ''}\n"
+                f"Instructions: {instr}"
+            )
+            send_gchat_webhook_safe(student.gchat_webhook, chat_msg)
+
+            mail_html = f"""
+            <div style="font-family: sans-serif; border: 1px solid #dee2e6; border-radius: 6px; padding: 14px; margin-bottom: 10px;">
+                <h4 style="color: #0d6efd; margin-top: 0;">Upcoming Examination Reminder</h4>
+                <p>Hello <strong>{student.name}</strong>,</p>
+                <p>Here are the details for your upcoming examination slot:</p>
+                <ul>
+                    <li><strong>Examination:</strong> {exam.name} ({exam.exam_type})</li>
+                    <li><strong>Course:</strong> {exam.course.code if exam.course else ''} - {exam.course.name if exam.course else ''}</li>
+                    <li><strong>Date &amp; Time:</strong> {slot.date} ({slot.start_time} to {slot.end_time})</li>
+                    <li><strong>Assigned Examiner:</strong> {examiner_name}</li>
+                    <li><strong>Venue:</strong> {slot.venue} {(' - ' + slot.meeting_link) if slot.meeting_link else ''}</li>
+                    <li><strong>Instructions:</strong> {instr}</li>
+                </ul>
+            </div>
+            """
+            send_email_safe(student.email, f"Examination Reminder: {exam.name} ({slot.date})", mail_html)
+            cards.append(mail_html)
+
+            db.session.add(
+                Notification(
+                    user_id=student.id,
+                    title=f"Reminder: {exam.name} ({slot.date})",
+                    message=(
+                        f"Exam: {exam.name} | Date: {slot.date} {slot.start_time}-{slot.end_time} | "
+                        f"Examiner: {examiner_name} | Instructions: {instr}"
+                    ),
+                    notif_type="reminder",
+                )
+            )
+            count += 1
+
+    preview = (
+        f"<div><h5>Daily Examination Reminders ({count} sent)</h5>"
