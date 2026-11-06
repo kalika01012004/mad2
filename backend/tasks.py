@@ -262,3 +262,41 @@ def generate_monthly_exam_report(triggered_by="celery-beat"):
                 <tr style="background: #f1f5f9;">
                     <th>Examiner</th><th>Department</th><th>Slots</th><th>Evaluations</th>
                 </tr>
+                {rows_html or '<tr><td colspan="4">No examiner records</td></tr>'}
+            </table>
+        </div>
+    </div>
+    """
+
+    admin = User.query.filter_by(role="admin").first()
+    if admin:
+        send_email_safe(
+            admin.email,
+            f"Monthly Examination Report - {month_name}",
+            report_html,
+            attachment_path=pdf_path,
+        )
+        db.session.add(
+            Notification(
+                user_id=admin.id,
+                title=f"Monthly Report Generated ({month_name})",
+                message=f"Conducted: {conducted} | Evaluated: {evaluated} | Completed Bookings: {completed_bk} | Pending: {pending_evals}.",
+                notif_type="system",
+                action_url=f"/api/admin/reports/download/{pdf_name}",
+            )
+        )
+
+    log_row = JobExecutionLog(
+        job_name="monthly_report",
+        triggered_by=triggered_by,
+        status="Completed",
+        summary=(
+            f"Monthly Report ({month_name}): {conducted} conducted exams, "
+            f"{evaluated} evaluated students, {completed_bk} completed bookings, "
+            f"{pending_evals} pending evaluations."
+        ),
+        artifact_path=pdf_name,
+        html_preview=report_html,
+    )
+    db.session.add(log_row)
+    db.session.commit()
