@@ -149,3 +149,41 @@ def generate_monthly_exam_report(triggered_by="celery-beat"):
 
     examiners = User.query.filter_by(role="examiner").all()
     ex_rows = []
+    for ex in examiners:
+        s_cnt = ExaminationSlot.query.filter_by(examiner_id=ex.id).count()
+        e_cnt = Evaluation.query.filter_by(examiner_id=ex.id).count()
+        ex_rows.append(
+            {
+                "name": ex.name,
+                "email": ex.email,
+                "department": ex.department,
+                "slots_created": s_cnt,
+                "evaluations_completed": e_cnt,
+                "score": s_cnt + (e_cnt * 2),
+            }
+        )
+    ex_rows.sort(key=lambda item: item["score"], reverse=True)
+
+    ts = now.strftime("%Y%m%d_%H%M%S")
+    pdf_name = f"monthly_exam_report_{ts}.pdf"
+    pdf_path = os.path.join(Config.REPORTS_FOLDER, pdf_name)
+
+    doc = SimpleDocTemplate(pdf_path, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    styles = getSampleStyleSheet()
+    story = []
+
+    heading_style = ParagraphStyle(
+        "ReportTitle",
+        parent=styles["Heading1"],
+        fontSize=17,
+        textColor=colors.HexColor("#0d6efd"),
+        spaceAfter=10,
+    )
+    story.append(Paragraph(f"EMP V2 - Monthly Examination Report ({month_name})", heading_style))
+    story.append(Paragraph(f"Generated: {now.strftime('%Y-%m-%d %H:%M UTC')}", styles["Normal"]))
+    story.append(Spacer(1, 14))
+
+    story.append(Paragraph("Monthly Summary", styles["Heading2"]))
+    stats_grid = [
+        ["Metric", "Count"],
+        ["Total Examinations", str(total_exams)],
