@@ -187,3 +187,40 @@ def generate_monthly_exam_report(triggered_by="celery-beat"):
     stats_grid = [
         ["Metric", "Count"],
         ["Total Examinations", str(total_exams)],
+        ["Examinations Conducted", str(conducted)],
+        ["Students Evaluated", str(evaluated)],
+        ["Completed Bookings", str(completed_bk)],
+        ["Upcoming Bookings", str(active_bk)],
+        ["Pending Evaluations", str(pending_evals)],
+    ]
+    tbl1 = Table(stats_grid, colWidths=[320, 150])
+    tbl1.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0d6efd")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f8f9fa")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("PADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(tbl1)
+    story.append(Spacer(1, 16))
+
+    story.append(Paragraph("Most Active Examiners", styles["Heading2"]))
+    ex_grid = [["Examiner Name", "Department", "Slots Created", "Evaluations Done"]]
+    for item in ex_rows:
+        ex_grid.append(
+            [
+                item["name"],
+                item["department"] or "N/A",
+                str(item["slots_created"]),
+                str(item["evaluations_completed"]),
+            ]
+        )
+    if len(ex_grid) == 1:
+        ex_grid.append(["No examiners found", "-", "0", "0"])
+
