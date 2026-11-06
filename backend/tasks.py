@@ -300,3 +300,40 @@ def generate_monthly_exam_report(triggered_by="celery-beat"):
     )
     db.session.add(log_row)
     db.session.commit()
+
+    return {
+        "job": "monthly_report",
+        "pdf_filename": pdf_name,
+        "download_url": f"/api/admin/reports/download/{pdf_name}",
+        "log_id": log_row.id,
+        "summary": log_row.summary,
+    }
+
+
+@celery_app.task(name="tasks.export_student_exam_history_csv")
+def export_student_exam_history_csv(student_id):
+    student = db.session.get(User, student_id)
+    if not student:
+        return {"error": "Student not found"}
+
+    bookings = (
+        Booking.query.filter_by(student_id=student_id)
+        .order_by(Booking.booking_date.desc())
+        .all()
+    )
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    fname = f"exam_history_student_{student.id}_{ts}.csv"
+    fpath = os.path.join(Config.EXPORTS_FOLDER, fname)
+
+    cols = [
+        "Student ID",
+        "Student Roll Number",
+        "Student Name",
+        "Examination Name",
+        "Course",
+        "Examination Date",
+        "Slot Time",
+        "Examiner",
+        "Marks Obtained",
+        "Booking Status",
