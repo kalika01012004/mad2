@@ -224,3 +224,41 @@ def generate_monthly_exam_report(triggered_by="celery-beat"):
     if len(ex_grid) == 1:
         ex_grid.append(["No examiners found", "-", "0", "0"])
 
+    tbl2 = Table(ex_grid, colWidths=[160, 130, 90, 90])
+    tbl2.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#198754")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("PADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(tbl2)
+    doc.build(story)
+
+    rows_html = "".join(
+        f"<tr><td>{x['name']}</td><td>{x['department']}</td><td>{x['slots_created']}</td><td>{x['evaluations_completed']}</td></tr>"
+        for x in ex_rows
+    )
+    report_html = f"""
+    <div style="font-family: sans-serif; color: #212529; max-width: 780px;">
+        <div style="background: #0d6efd; color: white; padding: 14px 18px; border-radius: 6px 6px 0 0;">
+            <h3 style="margin: 0;">Monthly Examination Report - {month_name}</h3>
+        </div>
+        <div style="border: 1px solid #dee2e6; border-top: none; padding: 18px; border-radius: 0 0 6px 6px;">
+            <h4>Monthly Statistics</h4>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 18px;" border="1" cellpadding="7">
+                <tr style="background: #f1f5f9;"><th>Metric</th><th>Value</th></tr>
+                <tr><td>Examinations Conducted</td><td><strong>{conducted}</strong> (Total: {total_exams})</td></tr>
+                <tr><td>Students Evaluated</td><td><strong>{evaluated}</strong></td></tr>
+                <tr><td>Completed Bookings</td><td><strong>{completed_bk}</strong></td></tr>
+                <tr><td>Pending Evaluations</td><td><strong>{pending_evals}</strong></td></tr>
+            </table>
+            <h4>Examiner Activity</h4>
+            <table style="width: 100%; border-collapse: collapse;" border="1" cellpadding="7">
+                <tr style="background: #f1f5f9;">
+                    <th>Examiner</th><th>Department</th><th>Slots</th><th>Evaluations</th>
+                </tr>
