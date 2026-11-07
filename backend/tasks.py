@@ -375,3 +375,41 @@ def export_student_exam_history_csv(student_id):
             )
             count += 1
 
+    dl_url = f"/api/student/exports/download/{fname}"
+
+    db.session.add(
+        Notification(
+            user_id=student.id,
+            title="CSV Export Ready",
+            message=f"Your examination history CSV ({count} rows) has been exported.",
+            notif_type="export",
+            action_url=dl_url,
+        )
+    )
+
+    log_row = JobExecutionLog(
+        job_name="csv_export",
+        triggered_by=f"student:{student.email}",
+        status="Completed",
+        summary=f"Exported {count} rows for {student.name} ({student.email}).",
+        artifact_path=fname,
+    )
+    db.session.add(log_row)
+    db.session.commit()
+
+    return {
+        "job": "csv_export",
+        "student_id": student.id,
+        "rows": count,
+        "filename": fname,
+        "download_url": dl_url,
+    }
+
+
+def generate_student_scorecard_pdf(booking_id):
+    booking = db.session.get(Booking, booking_id)
+    if not booking or not booking.evaluation:
+        return None
+
+    student = booking.student
+    exam = booking.examination
