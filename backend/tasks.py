@@ -413,3 +413,41 @@ def generate_student_scorecard_pdf(booking_id):
 
     student = booking.student
     exam = booking.examination
+    slot = booking.slot
+    ev = booking.evaluation
+    ev_data = ev.to_dict()
+
+    fname = f"scorecard_booking_{booking.id}.pdf"
+    fpath = os.path.join(Config.REPORTS_FOLDER, fname)
+
+    doc = SimpleDocTemplate(fpath, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    story = []
+
+    head_style = ParagraphStyle(
+        "ScorecardTitle",
+        parent=styles["Heading1"],
+        fontSize=19,
+        textColor=colors.HexColor("#0d6efd"),
+        spaceAfter=6,
+    )
+    story.append(Paragraph("EXAMINATION SCORECARD", head_style))
+    story.append(Paragraph("Examination Management Portal - V2", styles["Italic"]))
+    story.append(Spacer(1, 14))
+
+    meta_rows = [
+        ["Student Name:", student.name, "Roll Number:", student.roll_number or f"STU-{student.id:04d}"],
+        ["Email:", student.email, "Department:", student.department or "N/A"],
+        ["Course:", f"{exam.course.code} - {exam.course.name}" if exam.course else "N/A", "Exam Type:", exam.exam_type],
+        ["Examination:", exam.name, "Exam Date:", f"{slot.date} ({slot.start_time}-{slot.end_time})" if slot else "N/A"],
+        ["Examiner:", slot.examiner.name if (slot and slot.examiner) else "N/A", "Booking ID:", f"#{booking.id}"],
+    ]
+    meta_tbl = Table(meta_rows, colWidths=[100, 170, 95, 145])
+    meta_tbl.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#e9ecef")),
+                ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#e9ecef")),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
