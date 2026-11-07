@@ -451,3 +451,40 @@ def generate_student_scorecard_pdf(booking_id):
                 ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
                 ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("PADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(meta_tbl)
+    story.append(Spacer(1, 16))
+
+    story.append(Paragraph("Rubric Breakdown", styles["Heading2"]))
+    rubric_grid = [["Criterion", "Weightage (%)", "Max Marks", "Awarded", "Comment"]]
+    for item in ev_data.get("rubric_breakdown", []):
+        rubric_grid.append(
+            [
+                str(item.get("criterion_name", "")),
+                f"{item.get('weightage', 0)}%",
+                str(item.get("max_marks", 0)),
+                str(item.get("marks_awarded", 0)),
+                str(item.get("comment", "-")),
+            ]
+        )
+    if len(rubric_grid) == 1:
+        rubric_grid.append(["Overall Assessment", "100%", str(exam.max_marks), str(ev.total_marks), ev.remarks or "-"])
+
+    r_tbl = Table(rubric_grid, colWidths=[140, 75, 70, 85, 140])
+    r_tbl.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0d6efd")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("PADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(r_tbl)
+    story.append(Spacer(1, 16))
+
