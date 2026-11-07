@@ -488,3 +488,41 @@ def generate_student_scorecard_pdf(booking_id):
     story.append(r_tbl)
     story.append(Spacer(1, 16))
 
+    final_grid = [
+        ["Total Marks", f"{ev_data['total_marks']} / {ev_data['max_marks']}"],
+        ["Percentage", f"{ev_data['percentage']}%"],
+        ["Grade", ev_data["grade"]],
+        ["Status", "PASS" if ev_data["passed"] else "FAIL"],
+        ["Remarks", ev.remarks or "Satisfactory."],
+    ]
+    f_tbl = Table(final_grid, colWidths=[160, 350])
+    f_tbl.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#d1e7dd")),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("PADDING", (0, 0), (-1, -1), 7),
+            ]
+        )
+    )
+    story.append(f_tbl)
+    doc.build(story)
+    return fpath
+
+
+def dispatch_task(task_fn, *args, **kwargs):
+    try:
+        import redis
+        r = redis.Redis.from_url(Config.CELERY_BROKER_URL, socket_connect_timeout=0.5)
+        r.ping()
+        insp = celery_app.control.inspect(timeout=0.5)
+        workers = insp.ping() if insp else None
+        if workers:
+            job = task_fn.delay(*args, **kwargs)
+            return {"mode": "celery_worker", "task_id": job.id}
+    except Exception:
+        pass
+
+    out = task_fn(*args, **kwargs)
+    return {"mode": "local_sync", "result": out}
