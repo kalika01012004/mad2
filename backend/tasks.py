@@ -337,3 +337,41 @@ def export_student_exam_history_csv(student_id):
         "Examiner",
         "Marks Obtained",
         "Booking Status",
+    ]
+
+    count = 0
+    with open(fpath, mode="w", newline="", encoding="utf-8") as fp:
+        writer = csv.writer(fp)
+        writer.writerow(cols)
+
+        for b in bookings:
+            exam = b.examination
+            slot = b.slot
+            course_str = f"{exam.course.code} - {exam.course.name}" if (exam and exam.course) else "N/A"
+            examiner_str = slot.examiner.name if (slot and slot.examiner) else "N/A"
+            s_date = slot.date if slot else "N/A"
+            s_time = f"{slot.start_time} - {slot.end_time}" if slot else "N/A"
+
+            if b.evaluation and exam and exam.results_published:
+                marks = f"{b.evaluation.total_marks} / {exam.max_marks}"
+            elif b.evaluation:
+                marks = "Awaiting Publication"
+            else:
+                marks = "Not Evaluated"
+
+            writer.writerow(
+                [
+                    student.id,
+                    student.roll_number or f"STU-{student.id:04d}",
+                    student.name,
+                    exam.name if exam else "N/A",
+                    course_str,
+                    s_date,
+                    s_time,
+                    examiner_str,
+                    marks,
+                    b.status,
+                ]
+            )
+            count += 1
+
