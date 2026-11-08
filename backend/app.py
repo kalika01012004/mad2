@@ -37,3 +37,23 @@ def create_app(test_config=None, seed_demo=True):
             "application": "Examination Management Portal - V2",
             "cache": get_cache_info(),
         }), 200
+
+    @app.route("/", defaults={"path": ""})
+    @app.route("/<path:path>")
+    def index_route(path):
+        if path and os.path.exists(os.path.join(DIST_DIR, path)):
+            return send_from_directory(DIST_DIR, path)
+        idx = os.path.join(DIST_DIR, "index.html")
+        if os.path.exists(idx):
+            return send_from_directory(DIST_DIR, "index.html")
+        return jsonify({"status": "running", "application": "Examination Management Portal - V2"}), 200
+
+    init_db_and_seed(app, seed_demo_data=seed_demo)
+    return app
+
+
+app = create_app()
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="127.0.0.1", port=port, debug=True, use_reloader=False)
