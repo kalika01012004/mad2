@@ -1,0 +1,12 @@
+{
+  "name": "emp-v2-frontend",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve --port 8000",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "chart.js": "^4.4.3",
