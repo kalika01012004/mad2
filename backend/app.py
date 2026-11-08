@@ -18,3 +18,22 @@ DIST_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "fronte
 def create_app(test_config=None, seed_demo=True):
     app = Flask(__name__, static_folder=DIST_DIR, static_url_path="")
     app.config.from_object(Config)
+    if test_config:
+        app.config.update(test_config)
+
+    CORS(app)
+    db.init_app(app)
+    JWTManager(app)
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(examiner_bp)
+    app.register_blueprint(student_bp)
+
+    @app.route("/api/health", methods=["GET"])
+    def health():
+        return jsonify({
+            "status": "ok",
+            "application": "Examination Management Portal - V2",
+            "cache": get_cache_info(),
+        }), 200
