@@ -46,3 +46,28 @@ body {
 }
 
 .nav-pills .nav-link {
+  border-radius: 10px;
+  font-weight: 500;
+  color: #475569;
+  padding: 0.55rem 1rem;
+  margin-right: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.nav-pills .nav-link.active {
+  background-color: #0d6efd;
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(13, 110, 253, 0.3);
+}
+
+.auth-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
+  color: white;
+  border-radius: 18px;
+}
+
+.table > :not(caption) > * > * {
+  vertical-align: middle;
+}
+
+.toast-container-fixed {
