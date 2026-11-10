@@ -71,3 +71,27 @@ body {
 }
 
 .toast-container-fixed {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 2000;
+  max-width: 380px;
+}
+
+.chart-box {
+  position: relative;
+  height: 260px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .nav-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .nav-pills .nav-link {
+    white-space: nowrap;
+  }
+}
+
