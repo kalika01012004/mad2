@@ -22,3 +22,28 @@ export const EMP_API = {
       localStorage.removeItem("emp_v2_token");
     }
   },
+  getUser() {
+    try {
+      const raw = localStorage.getItem("emp_v2_user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+  setUser(usr) {
+    if (usr) {
+      localStorage.setItem("emp_v2_user", JSON.stringify(usr));
+    } else {
+      localStorage.removeItem("emp_v2_user");
+    }
+  },
+  async request(path, opts = {}) {
+    const token = this.getToken();
+    const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    const url = this.resolveUrl(path);
+    const res = await fetch(url, { ...opts, headers });
+    let body = {};
+    try {
