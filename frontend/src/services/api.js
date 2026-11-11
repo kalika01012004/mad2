@@ -47,3 +47,27 @@ export const EMP_API = {
     const res = await fetch(url, { ...opts, headers });
     let body = {};
     try {
+      body = await res.json();
+    } catch {
+      body = {};
+    }
+    if (!res.ok) {
+      throw new Error(body.error || body.msg || `Request failed (${res.status})`);
+    }
+    return body;
+  },
+  get(path) {
+    return this.request(path, { method: "GET" });
+  },
+  post(path, payload = {}) {
+    return this.request(path, { method: "POST", body: JSON.stringify(payload) });
+  },
+  put(path, payload = {}) {
+    return this.request(path, { method: "PUT", body: JSON.stringify(payload) });
+  },
+  delete(path) {
+    return this.request(path, { method: "DELETE" });
+  },
+};
+
+export default EMP_API;
