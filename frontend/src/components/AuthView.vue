@@ -71,3 +71,40 @@
               <label class="form-label fw-medium">Email or Username <span class="text-danger">*</span></label>
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <input
+                  type="text"
+                  class="form-control"
+                  v-model.trim="loginForm.identifier"
+                  placeholder="Enter your email or username"
+                  required
+                />
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label fw-medium">Password <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                <input
+                  type="password"
+                  class="form-control"
+                  v-model="loginForm.password"
+                  placeholder="Enter your password"
+                  required
+                  minlength="6"
+                />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold" :disabled="loading">
+              <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+              Sign In
+            </button>
+          </form>
+
+          <form v-else @submit.prevent="handleRegister">
+            <h4 class="fw-bold mb-1">Student Registration</h4>
+            <div class="alert alert-info py-2 small mb-3">
+              Only students can self-register. Examiners are added by the Admin.
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-medium">Full Name <span class="text-danger">*</span></label>
