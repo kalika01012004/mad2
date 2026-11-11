@@ -35,3 +35,39 @@
                   <h6 class="fw-bold mb-1"><i class="bi bi-lightning-charge-fill text-danger me-2"></i>Batch Jobs</h6>
                   <small class="opacity-75">Daily reminders, monthly reports &amp; Redis cache</small>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card section-card p-4 p-lg-5 h-100">
+          <ul class="nav nav-pills nav-fill mb-4 bg-light p-1 rounded-3">
+            <li class="nav-item">
+              <button
+                :class="['nav-link', authTab === 'login' ? 'active' : '']"
+                @click="authTab = 'login'"
+              >
+                <i class="bi bi-box-arrow-in-right me-1"></i>Login
+              </button>
+            </li>
+            <li class="nav-item">
+              <button
+                :class="['nav-link', authTab === 'register' ? 'active' : '']"
+                @click="authTab = 'register'"
+              >
+                <i class="bi bi-person-plus me-1"></i>Student Register
+              </button>
+            </li>
+          </ul>
+
+          <form v-if="authTab === 'login'" @submit.prevent="handleLogin" novalidate>
+            <h4 class="fw-bold mb-1">Sign In</h4>
+            <p class="text-muted small mb-4">
+              Log in as Admin, Examiner, or Student.
+            </p>
+            <div class="mb-3">
+              <label class="form-label fw-medium">Email or Username <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
