@@ -145,3 +145,39 @@
                 </button>
               </div>
             </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import EMP_API from "../services/api";
+
+export default {
+  name: "AuthView",
+  emits: ["authenticated", "notify"],
+  data() {
+    return {
+      authTab: "login",
+      loading: false,
+      loginForm: { identifier: "", password: "" },
+      registerForm: {
+        name: "",
+        email: "",
+        username: "",
+        password: "",
+        contact_details: "",
+        department: "Computer Science & Engineering",
+        roll_number: "",
+      },
+    };
+  },
+  methods: {
+    async handleLogin() {
+      if (!this.loginForm.identifier || !this.loginForm.password) {
+        this.$emit("notify", "Enter your username/email and password.", "danger");
+        return;
+      }
+      this.loading = true;
