@@ -181,3 +181,40 @@ export default {
         return;
       }
       this.loading = true;
+      try {
+        const res = await EMP_API.post("/api/auth/login", this.loginForm);
+        EMP_API.setToken(res.access_token);
+        EMP_API.setUser(res.user);
+        this.$emit("notify", `Signed in as ${res.user.name}.`, "success");
+        this.$emit("authenticated", res.user);
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      } finally {
+        this.loading = false;
+      }
+    },
+    async handleRegister() {
+      if (!this.registerForm.name || !this.registerForm.email || !this.registerForm.password) {
+        this.$emit("notify", "Name, email, and password are required.", "danger");
+        return;
+      }
+      if (this.registerForm.password.length < 6) {
+        this.$emit("notify", "Password must be at least 6 characters.", "danger");
+        return;
+      }
+      this.loading = true;
+      try {
+        const res = await EMP_API.post("/api/auth/register", this.registerForm);
+        EMP_API.setToken(res.access_token);
+        EMP_API.setUser(res.user);
+        this.$emit("notify", "Registration complete.", "success");
+        this.$emit("authenticated", res.user);
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
+};
+</script>
