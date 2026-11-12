@@ -29,3 +29,35 @@
             <div v-if="user.role === 'student'" class="mb-2">
               <label class="form-label small fw-medium">Roll Number</label>
               <input type="text" class="form-control" v-model.trim="form.roll_number" />
+            </div>
+            <div v-if="user.role === 'examiner'" class="mb-2">
+              <label class="form-label small fw-medium">Specialization</label>
+              <input type="text" class="form-control" v-model.trim="form.specialization" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Google Chat Webhook URL</label>
+              <input type="url" class="form-control" v-model.trim="form.gchat_webhook" placeholder="https://chat.googleapis.com/v1/spaces/..." />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">New Password</label>
+              <input type="password" class="form-control" v-model="form.new_password" minlength="6" />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" @click="$emit('close')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import EMP_API from "../services/api";
+
+export default {
+  name: "ProfileModal",
+  props: {
+    user: { type: Object, required: true },
+  },
