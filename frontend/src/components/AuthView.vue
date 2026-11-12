@@ -108,3 +108,40 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label small fw-medium">Full Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" v-model.trim="registerForm.name" required minlength="2" placeholder="Full Name" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-medium">Roll Number</label>
+                <input type="text" class="form-control" v-model.trim="registerForm.roll_number" placeholder="Roll Number" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-medium">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" v-model.trim="registerForm.email" required placeholder="Email Address" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-medium">Username</label>
+                <input type="text" class="form-control" v-model.trim="registerForm.username" placeholder="Username" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-medium">Department <span class="text-danger">*</span></label>
+                <select class="form-select" v-model="registerForm.department" required>
+                  <option>Computer Science &amp; Engineering</option>
+                  <option>Data Science &amp; Applications</option>
+                  <option>Artificial Intelligence &amp; ML</option>
+                  <option>Electronic Systems</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-medium">Contact Number</label>
+                <input type="tel" class="form-control" v-model.trim="registerForm.contact_details" placeholder="Phone Number" />
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-medium">Password (min 6 chars) <span class="text-danger">*</span></label>
+                <input type="password" class="form-control" v-model="registerForm.password" required minlength="6" placeholder="Password" />
+              </div>
+              <div class="col-12 mt-3">
+                <button type="submit" class="btn btn-success w-100 py-2 fw-semibold" :disabled="loading">
+                  Register
+                </button>
+              </div>
+            </div>
