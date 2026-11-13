@@ -61,3 +61,34 @@ export default {
   props: {
     user: { type: Object, required: true },
   },
+  emits: ["close", "updated", "notify"],
+  data() {
+    return {
+      form: {
+        name: this.user.name || "",
+        contact_details: this.user.contact_details || "",
+        department: this.user.department || "",
+        roll_number: this.user.roll_number || "",
+        designation: this.user.designation || "",
+        specialization: this.user.specialization || "",
+        bio: this.user.bio || "",
+        gchat_webhook: this.user.gchat_webhook || "",
+        new_password: "",
+      },
+    };
+  },
+  methods: {
+    async save() {
+      try {
+        const res = await EMP_API.put("/api/auth/profile", this.form);
+        EMP_API.setUser(res.user);
+        this.$emit("notify", "Profile updated.", "success");
+        this.$emit("updated", res.user);
+        this.$emit("close");
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+  },
+};
+</script>
