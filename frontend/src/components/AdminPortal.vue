@@ -142,3 +142,147 @@
           <div class="card section-card p-3">
             <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3-fill text-warning me-2"></i>Examination Status</h6>
             <div class="chart-box">
+              <canvas ref="chartExamStatus"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'courses'" class="row g-4">
+      <div class="col-lg-4">
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">
+            {{ editingCourse ? 'Edit Course' : 'Add Course' }}
+          </h5>
+          <form @submit.prevent="saveCourse">
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Course Code <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" v-model.trim="courseForm.code" required placeholder="CS2002" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Course Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" v-model.trim="courseForm.name" required placeholder="Modern Application Development II" />
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-7">
+                <label class="form-label small fw-medium">Department</label>
+                <input type="text" class="form-control" v-model.trim="courseForm.department" required />
+              </div>
+              <div class="col-5">
+                <label class="form-label small fw-medium">Credits</label>
+                <input type="number" class="form-control" v-model.number="courseForm.credits" min="1" max="10" required />
+              </div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-7">
+                <label class="form-label small fw-medium">Semester</label>
+                <input type="text" class="form-control" v-model.trim="courseForm.semester" />
+              </div>
+              <div class="col-5">
+                <label class="form-label small fw-medium">Status</label>
+                <select class="form-select" v-model="courseForm.status">
+                  <option>Active</option>
+                  <option>Inactive</option>
+                  <option>Archived</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Description</label>
+              <textarea class="form-control" rows="3" v-model.trim="courseForm.description"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary flex-grow-1">
+                {{ editingCourse ? 'Update' : 'Create' }}
+              </button>
+              <button v-if="editingCourse" type="button" class="btn btn-outline-secondary" @click="resetCourseForm">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">Courses ({{ courses.length }})</h5>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Code</th>
+                  <th>Name</th>
+                  <th>Department</th>
+                  <th>Credits</th>
+                  <th>Exams</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="c in courses" :key="c.id">
+                  <td><span class="badge bg-dark">{{ c.code }}</span></td>
+                  <td>
+                    <div class="fw-semibold">{{ c.name }}</div>
+                    <small class="text-muted">{{ c.description }}</small>
+                  </td>
+                  <td>{{ c.department }}</td>
+                  <td>{{ c.credits }}</td>
+                  <td><span class="badge bg-info text-dark">{{ c.examinations_count }}</span></td>
+                  <td>
+                    <span :class="['badge', c.status === 'Active' ? 'bg-success' : 'bg-secondary']">{{ c.status }}</span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" @click="editCourse(c)"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-outline-danger" @click="removeCourse(c)"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'examinations'" class="row g-4">
+      <div class="col-lg-4">
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">{{ editingExam ? 'Edit Examination' : 'New Examination' }}</h5>
+          <form @submit.prevent="saveExam">
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Course <span class="text-danger">*</span></label>
+              <select class="form-select" v-model="examForm.course_id" required>
+                <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.code }} - {{ c.name }}</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Examination Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" v-model.trim="examForm.name" required placeholder="End-Term Viva" />
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-medium">Type</label>
+                <select class="form-select" v-model="examForm.exam_type">
+                  <option>Viva</option>
+                  <option>Practical</option>
+                  <option>Project Demo</option>
+                  <option>Assessment</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Duration (mins)</label>
+                <input type="number" class="form-control" v-model.number="examForm.duration" min="5" required />
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-medium">Max Marks</label>
+                <input type="number" class="form-control" v-model.number="examForm.max_marks" min="1" required />
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Passing Marks</label>
+                <input type="number" class="form-control" v-model.number="examForm.passing_marks" min="0" required />
+              </div>
