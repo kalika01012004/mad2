@@ -430,3 +430,147 @@
                 </button>
                 <button class="btn btn-outline-danger" @click="removeExam(ex)">
                   <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="row g-2 small bg-light p-2 rounded mb-2">
+              <div class="col-md-4">
+                <strong>Slot Creation:</strong><br />
+                {{ ex.slot_creation_start }} to {{ ex.slot_creation_end }}
+              </div>
+              <div class="col-md-4">
+                <strong>Slot Booking:</strong><br />
+                {{ ex.slot_booking_start }} to {{ ex.slot_booking_end }}
+              </div>
+              <div class="col-md-4">
+                <strong>Examiners:</strong><br />
+                <span v-if="ex.assigned_examiners && ex.assigned_examiners.length">
+                  {{ ex.assigned_examiners.map(a => a.name).join(', ') }}
+                </span>
+                <span v-else class="text-danger">None</span>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <button
+                :class="['btn', 'btn-sm', ex.slot_creation_open ? 'btn-warning' : 'btn-outline-warning text-dark']"
+                @click="flipSlotCreation(ex)"
+              >
+                {{ ex.slot_creation_open ? 'Close Slot Creation' : 'Open Slot Creation' }}
+              </button>
+
+              <button
+                :class="['btn', 'btn-sm', ex.slot_booking_open ? 'btn-primary' : 'btn-outline-primary']"
+                @click="flipSlotBooking(ex)"
+              >
+                {{ ex.slot_booking_open ? 'Close Slot Booking' : 'Open Slot Booking' }}
+              </button>
+
+              <button
+                :class="['btn', 'btn-sm', ex.results_published ? 'btn-success' : 'btn-outline-success']"
+                @click="flipResults(ex)"
+              >
+                {{ ex.results_published ? 'Unpublish Results' : 'Publish Results' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'examiners'" class="row g-4">
+      <div class="col-lg-4">
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">{{ editingExaminer ? 'Edit Examiner' : 'Add Examiner' }}</h5>
+          <form @submit.prevent="saveExaminer">
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Full Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" v-model.trim="examinerForm.name" required placeholder="Dr. Vikram Patel" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Email <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" v-model.trim="examinerForm.email" :disabled="!!editingExaminer" required placeholder="vikram@emp.edu" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">
+                {{ editingExaminer ? 'New Password (optional)' : 'Password *' }}
+              </label>
+              <input type="text" class="form-control" v-model="examinerForm.password" :required="!editingExaminer" />
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-medium">Department</label>
+                <input type="text" class="form-control" v-model.trim="examinerForm.department" required />
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Designation</label>
+                <input type="text" class="form-control" v-model.trim="examinerForm.designation" />
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Contact</label>
+              <input type="text" class="form-control" v-model.trim="examinerForm.contact_details" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Specialization</label>
+              <input type="text" class="form-control" v-model.trim="examinerForm.specialization" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Status</label>
+              <select class="form-select" v-model="examinerForm.status">
+                <option>Active</option>
+                <option>Inactive</option>
+              </select>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary flex-grow-1">
+                {{ editingExaminer ? 'Update' : 'Add Examiner' }}
+              </button>
+              <button v-if="editingExaminer" type="button" class="btn btn-outline-secondary" @click="resetExaminerForm">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">Examiners ({{ examiners.length }})</h5>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Department</th>
+                  <th>Contact</th>
+                  <th>Exams</th>
+                  <th>Slots / Evals</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="exm in examiners" :key="exm.id">
+                  <td>
+                    <div class="fw-bold">{{ exm.name }}</div>
+                    <small class="text-muted">{{ exm.email }}</small>
+                  </td>
+                  <td>
+                    <div>{{ exm.department }}</div>
+                    <small class="text-muted">{{ exm.designation }} — {{ exm.specialization }}</small>
+                  </td>
+                  <td class="small">{{ exm.contact_details || 'N/A' }}</td>
+                  <td><span class="badge bg-primary">{{ exm.assigned_exams_count }}</span></td>
+                  <td>
+                    <span class="badge bg-info text-dark me-1">{{ exm.slots_count }} slots</span>
+                    <span class="badge bg-success">{{ exm.evaluations_count }} evals</span>
+                  </td>
+                  <td>
+                    <span :class="['badge', exm.status === 'Active' ? 'bg-success' : 'bg-danger']">{{ exm.status }}</span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" @click="editExaminer(exm)"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-outline-danger" @click="removeExaminer(exm)"><i class="bi bi-trash"></i></button>
