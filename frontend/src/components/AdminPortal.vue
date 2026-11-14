@@ -863,3 +863,147 @@
             <h6 class="fw-bold text-warning">Bookings ({{ (searchResults.bookings || []).length }})</h6>
             <ul class="list-group list-group-flush">
               <li v-for="b in searchResults.bookings" :key="b.id" class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>#{{ b.id }} {{ b.student_name }}</strong> → {{ b.examination_name }}
+                  <div class="small text-muted">{{ b.slot_date }} ({{ b.start_time }}-{{ b.end_time }}) | {{ b.examiner_name }}</div>
+                </div>
+                <span class="badge bg-secondary">{{ b.status }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'jobs'" class="row g-4">
+      <div class="col-lg-5">
+        <div class="card section-card p-4 mb-4">
+          <h5 class="fw-bold mb-3">Celery Background Jobs</h5>
+          <div class="d-grid gap-3">
+            <div class="p-3 border rounded-3 bg-light">
+              <h6 class="fw-bold mb-1">Daily Examination Reminder</h6>
+              <p class="small text-muted mb-2">
+                Sends reminders to students with upcoming bookings via Google Chat, Email, and Notifications.
+              </p>
+              <button class="btn btn-primary btn-sm w-100" @click="runDailyReminder">
+                Run Daily Reminder Job
+              </button>
+            </div>
+
+            <div class="p-3 border rounded-3 bg-light">
+              <h6 class="fw-bold mb-1">Monthly Examination Report</h6>
+              <p class="small text-muted mb-2">
+                Generates monthly examination summary in HTML and PDF formats for Admin.
+              </p>
+              <button class="btn btn-success btn-sm w-100" @click="runMonthlyReport">
+                Generate Monthly Report
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">Redis Cache Stats</h5>
+          <ul class="list-group list-group-flush small">
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Backend Mode:</span>
+              <span class="badge bg-success">{{ dash.cache_info.mode || 'active' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Active Keys:</span>
+              <strong>{{ dash.cache_info.active_keys || 0 }}</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Cache Hits:</span>
+              <strong class="text-success">{{ dash.cache_info.hits || 0 }}</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Cache Misses:</span>
+              <strong class="text-secondary">{{ dash.cache_info.misses || 0 }}</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Invalidations:</span>
+              <strong class="text-warning">{{ dash.cache_info.invalidations || 0 }}</strong>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">Job Execution History</h5>
+          <div class="table-responsive mb-3">
+            <table class="table table-sm table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Job</th>
+                  <th>Summary</th>
+                  <th>Output</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="log in jobLogs" :key="log.id">
+                  <td>
+                    <span class="badge bg-primary">{{ log.job_name }}</span>
+                    <div class="small text-muted">{{ (log.created_at || '').slice(0, 19).replace('T', ' ') }}</div>
+                  </td>
+                  <td class="small">{{ log.summary }}</td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <button
+                        v-if="log.has_html_preview"
+                        class="btn btn-xs btn-outline-info btn-sm py-0"
+                        @click="previewHtml = log.html_preview"
+                      >
+                        HTML
+                      </button>
+                      <a
+                        v-if="log.artifact_path && log.job_name === 'monthly_report'"
+                        :href="resolveUrl('/api/admin/reports/download/' + log.artifact_path)"
+                        target="_blank"
+                        class="btn btn-xs btn-outline-danger btn-sm py-0"
+                      >
+                        PDF
+                      </a>
+                      <a
+                        v-if="log.artifact_path && log.job_name === 'csv_export'"
+                        :href="resolveUrl('/api/student/exports/download/' + log.artifact_path)"
+                        target="_blank"
+                        class="btn btn-xs btn-outline-success btn-sm py-0"
+                      >
+                        CSV
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="jobLogs.length === 0">
+                  <td colspan="3" class="text-center text-muted small py-3">
+                    No jobs executed yet.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="previewHtml" class="border rounded p-3 bg-light">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong class="small text-primary">HTML Preview</strong>
+              <button class="btn-close btn-sm" @click="previewHtml = ''"></button>
+            </div>
+            <div v-html="previewHtml" class="bg-white p-3 rounded border"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import Chart from "chart.js/auto";
+import EMP_API from "../services/api";
+
+export default {
+  name: "AdminPortal",
+  emits: ["notify", "refresh-notifications"],
+  data() {
+    const today = new Date().toISOString().slice(0, 10);
