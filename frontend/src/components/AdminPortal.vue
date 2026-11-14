@@ -1151,3 +1151,147 @@ export default {
         }
       } catch (err) {
         this.$emit("notify", err.message, "danger");
+      }
+    },
+    setTab(t) {
+      this.tab = t;
+      if (t === "dashboard") {
+        this.$nextTick(() => this.drawCharts());
+      } else if (t === "search") {
+        this.doSearch();
+      }
+    },
+    drawCharts() {
+      const ch = this.dash.charts;
+      if (!ch) return;
+      this.clearCharts();
+
+      const el1 = this.$refs.chartPopularExams;
+      if (el1 && ch.popular_examinations) {
+        this.c1 = new Chart(el1, {
+          type: "bar",
+          data: {
+            labels: ch.popular_examinations.labels,
+            datasets: [
+              {
+                label: "Bookings",
+                data: ch.popular_examinations.bookings,
+                backgroundColor: "rgba(13, 110, 253, 0.78)",
+                borderRadius: 6,
+              },
+              {
+                label: "Evaluations",
+                data: ch.popular_examinations.evaluations,
+                backgroundColor: "rgba(25, 135, 84, 0.78)",
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: { responsive: true, maintainAspectRatio: false },
+        });
+      }
+
+      const el2 = this.$refs.chartExaminerWorkload;
+      if (el2 && ch.examiner_workload) {
+        this.c2 = new Chart(el2, {
+          type: "bar",
+          data: {
+            labels: ch.examiner_workload.labels,
+            datasets: [
+              {
+                label: "Slots",
+                data: ch.examiner_workload.slots_created,
+                backgroundColor: "rgba(102, 16, 242, 0.75)",
+                borderRadius: 6,
+              },
+              {
+                label: "Evaluated",
+                data: ch.examiner_workload.evaluations_completed,
+                backgroundColor: "rgba(253, 126, 20, 0.8)",
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: { responsive: true, maintainAspectRatio: false },
+        });
+      }
+
+      const el3 = this.$refs.chartBookingTrends;
+      if (el3 && ch.booking_trends) {
+        this.c3 = new Chart(el3, {
+          type: "doughnut",
+          data: {
+            labels: ch.booking_trends.labels,
+            datasets: [
+              {
+                data: ch.booking_trends.data,
+                backgroundColor: ["#0d6efd", "#198754", "#dc3545"],
+              },
+            ],
+          },
+          options: { responsive: true, maintainAspectRatio: false },
+        });
+      }
+
+      const el4 = this.$refs.chartExamStatus;
+      if (el4 && ch.exam_status_distribution) {
+        this.c4 = new Chart(el4, {
+          type: "pie",
+          data: {
+            labels: ch.exam_status_distribution.labels,
+            datasets: [
+              {
+                data: ch.exam_status_distribution.data,
+                backgroundColor: ["#6c757d", "#0dcaf0", "#0d6efd", "#ffc107", "#198754"],
+              },
+            ],
+          },
+          options: { responsive: true, maintainAspectRatio: false },
+        });
+      }
+    },
+
+    resetCourseForm() {
+      this.editingCourse = null;
+      this.courseForm = {
+        code: "",
+        name: "",
+        department: "Computer Science & Engineering",
+        credits: 4,
+        semester: "Term 1 - 2026",
+        status: "Active",
+        description: "",
+      };
+    },
+    editCourse(c) {
+      this.editingCourse = c;
+      this.courseForm = {
+        code: c.code,
+        name: c.name,
+        department: c.department,
+        credits: c.credits,
+        semester: c.semester,
+        status: c.status,
+        description: c.description,
+      };
+    },
+    async saveCourse() {
+      try {
+        if (this.editingCourse) {
+          await EMP_API.put(`/api/admin/courses/${this.editingCourse.id}`, this.courseForm);
+          this.$emit("notify", "Course updated.");
+        } else {
+          await EMP_API.post("/api/admin/courses", this.courseForm);
+          this.$emit("notify", "Course created.");
+        }
+        this.resetCourseForm();
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async removeCourse(c) {
+      if (!confirm(`Delete course '${c.code}'?`)) return;
+      try {
+        await EMP_API.delete(`/api/admin/courses/${c.id}`);
+        this.$emit("notify", "Course deleted.");
