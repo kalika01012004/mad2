@@ -1007,3 +1007,147 @@ export default {
   emits: ["notify", "refresh-notifications"],
   data() {
     const today = new Date().toISOString().slice(0, 10);
+    const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    return {
+      tab: "dashboard",
+      dash: { summary: {}, charts: {}, cache_info: {} },
+      courses: [],
+      exams: [],
+      examiners: [],
+      students: [],
+      slots: [],
+      bookings: [],
+      jobLogs: [],
+      previewHtml: "",
+
+      editingCourse: null,
+      courseForm: {
+        code: "",
+        name: "",
+        department: "Computer Science & Engineering",
+        credits: 4,
+        semester: "Term 1 - 2026",
+        status: "Active",
+        description: "",
+      },
+
+      editingExam: null,
+      examForm: {
+        course_id: "",
+        name: "",
+        exam_type: "Viva",
+        duration: 30,
+        max_marks: 100,
+        passing_marks: 40,
+        slot_creation_start: today,
+        slot_creation_end: nextWeek,
+        slot_booking_start: today,
+        slot_booking_end: nextWeek,
+        status: "Slot Creation",
+        slot_creation_open: true,
+        slot_booking_open: false,
+        instructions: "Join 5 minutes before the scheduled start time with valid ID.",
+        examiner_ids: [],
+      },
+
+      activeRubricExam: null,
+      rubrics: [],
+      rubricForm: {
+        criterion_name: "",
+        max_marks: 25,
+        weightage: 25,
+        description: "",
+      },
+
+      editingExaminer: null,
+      examinerForm: {
+        name: "",
+        email: "",
+        username: "",
+        password: "examiner123",
+        contact_details: "",
+        department: "Computer Science & Engineering",
+        designation: "Assistant Professor",
+        specialization: "",
+        status: "Active",
+        examination_ids: [],
+      },
+
+      slotToEdit: null,
+      slotEditForm: {
+        date: "",
+        start_time: "",
+        end_time: "",
+        examiner_id: "",
+        max_capacity: 1,
+        venue: "",
+        meeting_link: "",
+        status: "Available",
+        reason: "",
+      },
+
+      bookingToMove: null,
+      bookingMoveForm: {
+        new_slot_id: "",
+        reason: "Rescheduled by Admin.",
+      },
+
+      searchQuery: "",
+      searchCategory: "all",
+      searchResults: {
+        students: [],
+        examiners: [],
+        examinations: [],
+        bookings: [],
+      },
+    };
+  },
+  mounted() {
+    this.c1 = null;
+    this.c2 = null;
+    this.c3 = null;
+    this.c4 = null;
+    this.fetchAll();
+  },
+  beforeUnmount() {
+    this.clearCharts();
+  },
+  methods: {
+    resolveUrl(path) {
+      return EMP_API.resolveUrl(path);
+    },
+    clearCharts() {
+      if (this.c1) this.c1.destroy();
+      if (this.c2) this.c2.destroy();
+      if (this.c3) this.c3.destroy();
+      if (this.c4) this.c4.destroy();
+    },
+    async fetchAll() {
+      try {
+        const [d, c, ex, exm, st, sl, bk, jl] = await Promise.all([
+          EMP_API.get("/api/admin/dashboard"),
+          EMP_API.get("/api/admin/courses"),
+          EMP_API.get("/api/admin/examinations"),
+          EMP_API.get("/api/admin/examiners"),
+          EMP_API.get("/api/admin/students"),
+          EMP_API.get("/api/admin/slots"),
+          EMP_API.get("/api/admin/bookings"),
+          EMP_API.get("/api/admin/jobs/logs"),
+        ]);
+        this.dash = d;
+        this.courses = c.courses || [];
+        this.exams = ex.examinations || [];
+        this.examiners = exm.examiners || [];
+        this.students = st.students || [];
+        this.slots = sl.slots || [];
+        this.bookings = bk.bookings || [];
+        this.jobLogs = jl.logs || [];
+
+        if (!this.examForm.course_id && this.courses.length > 0) {
+          this.examForm.course_id = this.courses[0].id;
+        }
+        if (this.tab === "dashboard") {
+          this.$nextTick(() => this.drawCharts());
+        }
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
