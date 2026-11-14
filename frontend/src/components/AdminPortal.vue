@@ -574,3 +574,147 @@
                     <div class="btn-group btn-group-sm">
                       <button class="btn btn-outline-primary" @click="editExaminer(exm)"><i class="bi bi-pencil"></i></button>
                       <button class="btn btn-outline-danger" @click="removeExaminer(exm)"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'slots'">
+      <div v-if="slotToEdit" class="card section-card p-4 mb-4 border-start border-4 border-warning">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">
+            Reschedule / Reassign Slot #{{ slotToEdit.id }}
+          </h5>
+          <button class="btn-close" @click="slotToEdit = null"></button>
+        </div>
+        <form class="row g-3" @submit.prevent="saveSlotReschedule">
+          <div class="col-md-3">
+            <label class="form-label small fw-medium">Date</label>
+            <input type="date" class="form-control" v-model="slotEditForm.date" required />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-medium">Start Time</label>
+            <input type="time" class="form-control" v-model="slotEditForm.start_time" required />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-medium">End Time</label>
+            <input type="time" class="form-control" v-model="slotEditForm.end_time" required />
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-medium">Examiner</label>
+            <select class="form-select" v-model="slotEditForm.examiner_id" required>
+              <option v-for="exm in examiners" :key="exm.id" :value="exm.id">
+                {{ exm.name }} ({{ exm.department }})
+              </option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-medium">Max Capacity</label>
+            <input type="number" class="form-control" v-model.number="slotEditForm.max_capacity" min="1" required />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-medium">Meeting Link</label>
+            <input type="text" class="form-control" v-model="slotEditForm.meeting_link" />
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small fw-medium">Reason</label>
+            <input type="text" class="form-control" v-model="slotEditForm.reason" required />
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-warning fw-semibold w-100">Update Slot</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card section-card p-4">
+        <h5 class="fw-bold mb-3">All Examination Slots ({{ slots.length }})</h5>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Examination</th>
+                <th>Examiner</th>
+                <th>Date &amp; Time</th>
+                <th>Seats</th>
+                <th>Venue</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="s in slots" :key="s.id">
+                <td>#{{ s.id }}</td>
+                <td>
+                  <span class="badge bg-dark me-1">{{ s.course_code }}</span>
+                  <strong>{{ s.examination_name }}</strong>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ s.examiner_name }}</div>
+                  <small class="text-muted">{{ s.examiner_department }}</small>
+                </td>
+                <td>
+                  <div>{{ s.date }}</div>
+                  <small class="text-muted">{{ s.start_time }} - {{ s.end_time }}</small>
+                </td>
+                <td>
+                  <span class="fw-bold">{{ s.available_seats }}</span> / {{ s.max_capacity }}
+                  <small class="text-muted ms-1">({{ s.booked_count }} booked)</small>
+                </td>
+                <td class="small">
+                  <div>{{ s.venue }}</div>
+                  <a v-if="s.meeting_link" :href="s.meeting_link" target="_blank" class="small">Meeting Link</a>
+                </td>
+                <td>
+                  <span
+                    :class="[
+                      'badge',
+                      s.status === 'Available' ? 'bg-success' : s.status === 'Full' ? 'bg-warning text-dark' : 'bg-secondary',
+                    ]"
+                  >
+                    {{ s.status }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-warning text-dark" @click="startSlotReschedule(s)">
+                    Reschedule / Reassign
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'bookings'">
+      <div v-if="bookingToMove" class="card section-card p-4 mb-4 border-start border-4 border-primary">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">
+            Reschedule Booking #{{ bookingToMove.id }} — {{ bookingToMove.student_name }}
+          </h5>
+          <button class="btn-close" @click="bookingToMove = null"></button>
+        </div>
+        <form class="row g-3 align-items-end" @submit.prevent="saveBookingReschedule">
+          <div class="col-md-5">
+            <label class="form-label small fw-medium">Target Slot</label>
+            <select class="form-select" v-model="bookingMoveForm.new_slot_id" required>
+              <option v-for="s in getExamSlots(bookingToMove.examination_id)" :key="s.id" :value="s.id">
+                Slot #{{ s.id }} | {{ s.date }} ({{ s.start_time }}-{{ s.end_time }}) | {{ s.examiner_name }} | Avail: {{ s.available_seats }}
+              </option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small fw-medium">Reason</label>
+            <input type="text" class="form-control" v-model="bookingMoveForm.reason" required />
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Save</button>
+          </div>
+        </form>
+      </div>
