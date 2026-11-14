@@ -718,3 +718,148 @@
           </div>
         </form>
       </div>
+
+      <div class="card section-card p-4">
+        <h5 class="fw-bold mb-3">Student Bookings ({{ bookings.length }})</h5>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Student</th>
+                <th>Examination</th>
+                <th>Date &amp; Time</th>
+                <th>Examiner</th>
+                <th>Status</th>
+                <th>Evaluation</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="b in bookings" :key="b.id">
+                <td>#{{ b.id }}</td>
+                <td>
+                  <div class="fw-bold">{{ b.student_name }}</div>
+                  <small class="text-muted">{{ b.student_roll_number }} | {{ b.student_email }}</small>
+                </td>
+                <td>
+                  <span class="badge bg-dark me-1">{{ b.course_code }}</span>
+                  <span>{{ b.examination_name }}</span>
+                </td>
+                <td>
+                  <div>{{ b.slot_date }}</div>
+                  <small class="text-muted">{{ b.start_time }} - {{ b.end_time }}</small>
+                </td>
+                <td>{{ b.examiner_name }}</td>
+                <td>
+                  <span
+                    :class="[
+                      'badge',
+                      b.status === 'Completed' ? 'bg-success' : b.status === 'Booked' ? 'bg-primary' : 'bg-danger',
+                    ]"
+                  >
+                    {{ b.status }}
+                  </span>
+                  <div v-if="b.rescheduled_by_admin" class="small text-warning fw-semibold mt-1">
+                    Rescheduled
+                  </div>
+                </td>
+                <td>
+                  <div v-if="b.evaluation">
+                    <strong>{{ b.evaluation.total_marks }} / {{ b.max_marks }}</strong>
+                    <span class="badge bg-info text-dark ms-1">{{ b.evaluation.grade }}</span>
+                  </div>
+                  <span v-else class="text-muted small">Pending</span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary" @click="startBookingReschedule(b)">
+                    Reschedule
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'search'">
+      <div class="card section-card p-4 mb-4">
+        <h5 class="fw-bold mb-3">Search Records</h5>
+        <div class="row g-2">
+          <div class="col-md-7">
+            <input
+              type="text"
+              class="form-control"
+              v-model="searchQuery"
+              @input="doSearch"
+              placeholder="Search students, examiners, examinations, or bookings..."
+            />
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" v-model="searchCategory" @change="doSearch">
+              <option value="all">All</option>
+              <option value="students">Students</option>
+              <option value="examiners">Examiners</option>
+              <option value="examinations">Examinations</option>
+              <option value="bookings">Bookings</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100" @click="doSearch">Search</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-6" v-if="searchCategory === 'all' || searchCategory === 'students'">
+          <div class="card section-card p-3">
+            <h6 class="fw-bold text-primary">Students ({{ (searchResults.students || []).length }})</h6>
+            <ul class="list-group list-group-flush">
+              <li v-for="s in searchResults.students" :key="s.id" class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ s.name }}</strong> <span class="badge bg-secondary ms-1">{{ s.roll_number }}</span>
+                  <div class="small text-muted">{{ s.email }} | {{ s.department }}</div>
+                </div>
+                <span class="badge bg-success">{{ s.status }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="col-md-6" v-if="searchCategory === 'all' || searchCategory === 'examiners'">
+          <div class="card section-card p-3">
+            <h6 class="fw-bold text-info">Examiners ({{ (searchResults.examiners || []).length }})</h6>
+            <ul class="list-group list-group-flush">
+              <li v-for="e in searchResults.examiners" :key="e.id" class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ e.name }}</strong>
+                  <div class="small text-muted">{{ e.email }} | {{ e.department }}</div>
+                </div>
+                <span class="badge bg-info text-dark">{{ e.designation }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="col-md-6" v-if="searchCategory === 'all' || searchCategory === 'examinations'">
+          <div class="card section-card p-3">
+            <h6 class="fw-bold text-success">Examinations ({{ (searchResults.examinations || []).length }})</h6>
+            <ul class="list-group list-group-flush">
+              <li v-for="ex in searchResults.examinations" :key="ex.id" class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="badge bg-dark me-1">{{ ex.course_code }}</span>
+                  <strong>{{ ex.name }}</strong>
+                  <div class="small text-muted">{{ ex.exam_type }} | Max Marks: {{ ex.max_marks }}</div>
+                </div>
+                <span class="badge bg-primary">{{ ex.status }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="col-md-6" v-if="searchCategory === 'all' || searchCategory === 'bookings'">
+          <div class="card section-card p-3">
+            <h6 class="fw-bold text-warning">Bookings ({{ (searchResults.bookings || []).length }})</h6>
+            <ul class="list-group list-group-flush">
+              <li v-for="b in searchResults.bookings" :key="b.id" class="list-group-item d-flex justify-content-between align-items-center">
