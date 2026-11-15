@@ -1295,3 +1295,147 @@ export default {
       try {
         await EMP_API.delete(`/api/admin/courses/${c.id}`);
         this.$emit("notify", "Course deleted.");
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+
+    resetExamForm() {
+      const today = new Date().toISOString().slice(0, 10);
+      const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+      this.editingExam = null;
+      this.examForm = {
+        course_id: this.courses.length ? this.courses[0].id : "",
+        name: "",
+        exam_type: "Viva",
+        duration: 30,
+        max_marks: 100,
+        passing_marks: 40,
+        slot_creation_start: today,
+        slot_creation_end: nextWeek,
+        slot_booking_start: today,
+        slot_booking_end: nextWeek,
+        status: "Slot Creation",
+        slot_creation_open: true,
+        slot_booking_open: false,
+        instructions: "Join 5 minutes before the scheduled start time with valid ID.",
+        examiner_ids: [],
+      };
+    },
+    editExam(ex) {
+      this.editingExam = ex;
+      this.examForm = {
+        course_id: ex.course_id,
+        name: ex.name,
+        exam_type: ex.exam_type,
+        duration: ex.duration,
+        max_marks: ex.max_marks,
+        passing_marks: ex.passing_marks,
+        slot_creation_start: ex.slot_creation_start,
+        slot_creation_end: ex.slot_creation_end,
+        slot_booking_start: ex.slot_booking_start,
+        slot_booking_end: ex.slot_booking_end,
+        status: ex.status,
+        slot_creation_open: ex.slot_creation_open,
+        slot_booking_open: ex.slot_booking_open,
+        instructions: ex.instructions,
+        examiner_ids: [...(ex.assigned_examiner_ids || [])],
+      };
+    },
+    async saveExam() {
+      try {
+        if (this.editingExam) {
+          await EMP_API.put(`/api/admin/examinations/${this.editingExam.id}`, this.examForm);
+          this.$emit("notify", "Examination updated.");
+        } else {
+          await EMP_API.post("/api/admin/examinations", this.examForm);
+          this.$emit("notify", "Examination created.");
+        }
+        this.resetExamForm();
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async removeExam(ex) {
+      if (!confirm(`Delete examination '${ex.name}'?`)) return;
+      try {
+        await EMP_API.delete(`/api/admin/examinations/${ex.id}`);
+        this.$emit("notify", "Examination deleted.");
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async flipSlotCreation(ex) {
+      try {
+        const res = await EMP_API.post(`/api/admin/examinations/${ex.id}/toggle-slot-creation`, {
+          open: !ex.slot_creation_open,
+        });
+        this.$emit("notify", res.message);
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async flipSlotBooking(ex) {
+      try {
+        const res = await EMP_API.post(`/api/admin/examinations/${ex.id}/toggle-slot-booking`, {
+          open: !ex.slot_booking_open,
+        });
+        this.$emit("notify", res.message);
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async flipResults(ex) {
+      try {
+        const res = await EMP_API.post(`/api/admin/examinations/${ex.id}/publish-results`, {
+          publish: !ex.results_published,
+        });
+        this.$emit("notify", res.message);
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+
+    async openRubrics(ex) {
+      this.activeRubricExam = ex;
+      try {
+        const res = await EMP_API.get(`/api/admin/examinations/${ex.id}/rubrics`);
+        this.rubrics = res.rubrics || [];
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async addRubric() {
+      if (!this.activeRubricExam) return;
+      try {
+        await EMP_API.post(
+          `/api/admin/examinations/${this.activeRubricExam.id}/rubrics`,
+          this.rubricForm
+        );
+        this.rubricForm = { criterion_name: "", max_marks: 25, weightage: 25, description: "" };
+        await this.openRubrics(this.activeRubricExam);
+        await this.fetchAll();
+        this.$emit("notify", "Rubric added.");
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async removeRubric(r) {
+      try {
+        await EMP_API.delete(`/api/admin/rubrics/${r.id}`);
+        await this.openRubrics(this.activeRubricExam);
+        await this.fetchAll();
+        this.$emit("notify", "Rubric deleted.");
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+
+    resetExaminerForm() {
+      this.editingExaminer = null;
