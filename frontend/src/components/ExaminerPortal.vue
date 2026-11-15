@@ -157,3 +157,82 @@
                   <td>
                     <div>{{ s.date }}</div>
                     <small class="text-muted">{{ s.start_time }} - {{ s.end_time }}</small>
+                  </td>
+                  <td>
+                    <strong>{{ s.available_seats }}</strong> / {{ s.max_capacity }}
+                    <small class="text-muted">({{ s.booked_count }} booked)</small>
+                  </td>
+                  <td class="small">
+                    <div>{{ s.venue }}</div>
+                    <a v-if="s.meeting_link" :href="s.meeting_link" target="_blank">Meeting Link</a>
+                  </td>
+                  <td>
+                    <span :class="['badge', s.status === 'Available' ? 'bg-success' : s.status === 'Full' ? 'bg-warning text-dark' : 'bg-secondary']">
+                      {{ s.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-primary" @click="editSlot(s)">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-outline-danger" @click="removeSlot(s)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'evaluations'">
+      <div v-if="activeBooking" class="card section-card p-4 mb-4 border-start border-4 border-success">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0 text-success">
+              Evaluate: {{ activeBooking.student_name }} ({{ activeBooking.student_roll_number }})
+            </h5>
+            <small class="text-muted">
+              {{ activeBooking.examination_name }} | Max Marks: <strong>{{ activeBooking.max_marks }}</strong>
+            </small>
+          </div>
+          <button class="btn-close" @click="activeBooking = null"></button>
+        </div>
+
+        <form @submit.prevent="saveEvaluation">
+          <div v-if="rubricInputs.length > 0" class="table-responsive mb-3">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Criterion</th>
+                  <th>Weightage</th>
+                  <th>Max Marks</th>
+                  <th style="width: 150px;">Marks Awarded *</th>
+                  <th>Comment</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in rubricInputs" :key="item.rubric_id">
+                  <td>
+                    <div class="fw-bold">{{ item.criterion_name }}</div>
+                    <small class="text-muted">{{ item.description }}</small>
+                  </td>
+                  <td>{{ item.weightage }}%</td>
+                  <td>{{ item.max_marks }}</td>
+                  <td>
+                    <input
+                      type="number"
+                      step="0.5"
+                      class="form-control form-control-sm"
+                      v-model.number="item.marks_awarded"
+                      :max="item.max_marks"
+                      min="0"
+                      required
+                    />
+                  </td>
+                  <td>
+                    <input type="text" class="form-control form-control-sm" v-model="item.comment" />
