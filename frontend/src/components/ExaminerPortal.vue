@@ -78,3 +78,82 @@
         </div>
       </div>
     </div>
+
+    <div v-if="tab === 'slots'" class="row g-4">
+      <div class="col-lg-4">
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">{{ editingSlot ? 'Edit Slot' : 'Add Slot' }}</h5>
+          <form @submit.prevent="saveSlot">
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Examination <span class="text-danger">*</span></label>
+              <select class="form-select" v-model="slotForm.examination_id" :disabled="!!editingSlot" required>
+                <option v-for="ex in dash.assigned_examinations" :key="ex.id" :value="ex.id">
+                  {{ ex.course_code }} - {{ ex.name }} ({{ ex.can_create_slots ? 'Open' : 'Closed' }})
+                </option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" v-model="slotForm.date" required />
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-medium">Start Time <span class="text-danger">*</span></label>
+                <input type="time" class="form-control" v-model="slotForm.start_time" required />
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">End Time <span class="text-danger">*</span></label>
+                <input type="time" class="form-control" v-model="slotForm.end_time" required />
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Max Capacity <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" v-model.number="slotForm.max_capacity" min="1" max="50" required />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-medium">Venue</label>
+              <input type="text" class="form-control" v-model.trim="slotForm.venue" placeholder="Lab 102 / Google Meet" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Meeting Link</label>
+              <input type="url" class="form-control" v-model.trim="slotForm.meeting_link" placeholder="https://meet.google.com/..." />
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary flex-grow-1">
+                {{ editingSlot ? 'Update' : 'Create' }}
+              </button>
+              <button v-if="editingSlot" type="button" class="btn btn-outline-secondary" @click="resetSlotForm">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="card section-card p-4">
+          <h5 class="fw-bold mb-3">My Examination Slots ({{ (dash.slots || []).length }})</h5>
+          <p class="small text-muted">
+            Slots can be edited or removed before student booking begins and while no students are booked.
+          </p>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Examination</th>
+                  <th>Date &amp; Time</th>
+                  <th>Seats</th>
+                  <th>Venue</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="s in dash.slots" :key="s.id">
+                  <td>
+                    <span class="badge bg-dark me-1">{{ s.course_code }}</span>
+                    <strong>{{ s.examination_name }}</strong>
+                  </td>
+                  <td>
+                    <div>{{ s.date }}</div>
+                    <small class="text-muted">{{ s.start_time }} - {{ s.end_time }}</small>
