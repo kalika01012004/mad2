@@ -1439,3 +1439,147 @@ export default {
 
     resetExaminerForm() {
       this.editingExaminer = null;
+      this.examinerForm = {
+        name: "",
+        email: "",
+        username: "",
+        password: "examiner123",
+        contact_details: "",
+        department: "Computer Science & Engineering",
+        designation: "Assistant Professor",
+        specialization: "",
+        status: "Active",
+        examination_ids: [],
+      };
+    },
+    editExaminer(exm) {
+      this.editingExaminer = exm;
+      this.examinerForm = {
+        name: exm.name,
+        email: exm.email,
+        username: exm.username,
+        password: "",
+        contact_details: exm.contact_details,
+        department: exm.department,
+        designation: exm.designation,
+        specialization: exm.specialization,
+        status: exm.status,
+        examination_ids: [],
+      };
+    },
+    async saveExaminer() {
+      try {
+        if (this.editingExaminer) {
+          await EMP_API.put(`/api/admin/examiners/${this.editingExaminer.id}`, this.examinerForm);
+          this.$emit("notify", "Examiner updated.");
+        } else {
+          await EMP_API.post("/api/admin/examiners", this.examinerForm);
+          this.$emit("notify", "Examiner added.");
+        }
+        this.resetExaminerForm();
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async removeExaminer(exm) {
+      if (!confirm(`Remove examiner '${exm.name}'?`)) return;
+      try {
+        await EMP_API.delete(`/api/admin/examiners/${exm.id}`);
+        this.$emit("notify", "Examiner removed.");
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+
+    startSlotReschedule(slot) {
+      this.slotToEdit = slot;
+      this.slotEditForm = {
+        date: slot.date,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        examiner_id: slot.examiner_id,
+        max_capacity: slot.max_capacity,
+        venue: slot.venue,
+        meeting_link: slot.meeting_link,
+        status: slot.status,
+        reason: "Updated by Admin.",
+      };
+    },
+    async saveSlotReschedule() {
+      if (!this.slotToEdit) return;
+      try {
+        const res = await EMP_API.put(
+          `/api/admin/slots/${this.slotToEdit.id}/reschedule`,
+          this.slotEditForm
+        );
+        this.$emit("notify", res.message);
+        this.slotToEdit = null;
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+
+    startBookingReschedule(b) {
+      this.bookingToMove = b;
+      this.bookingMoveForm = {
+        new_slot_id: b.slot_id,
+        reason: "Rescheduled by Admin.",
+      };
+    },
+    getExamSlots(examId) {
+      return this.slots.filter((s) => s.examination_id === examId && s.status !== "Cancelled");
+    },
+    async saveBookingReschedule() {
+      if (!this.bookingToMove) return;
+      try {
+        const res = await EMP_API.put(
+          `/api/admin/bookings/${this.bookingToMove.id}/reschedule`,
+          this.bookingMoveForm
+        );
+        this.$emit("notify", res.message);
+        this.bookingToMove = null;
+        await this.fetchAll();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+
+    async doSearch() {
+      try {
+        const res = await EMP_API.get(
+          `/api/admin/search?q=${encodeURIComponent(this.searchQuery)}&category=${encodeURIComponent(
+            this.searchCategory
+          )}`
+        );
+        this.searchResults = res;
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+
+    async runDailyReminder() {
+      try {
+        const res = await EMP_API.post("/api/admin/jobs/daily-reminder");
+        this.$emit("notify", res.message);
+        await this.fetchAll();
+        this.$emit("refresh-notifications");
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async runMonthlyReport() {
+      try {
+        const res = await EMP_API.post("/api/admin/jobs/monthly-report");
+        this.$emit("notify", res.message);
+        await this.fetchAll();
+        this.$emit("refresh-notifications");
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+  },
+};
+</script>
