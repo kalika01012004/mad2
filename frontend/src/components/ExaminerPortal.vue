@@ -396,3 +396,82 @@ export default {
         max_capacity: s.max_capacity,
         venue: s.venue,
         meeting_link: s.meeting_link,
+      };
+    },
+    async saveSlot() {
+      try {
+        if (this.editingSlot) {
+          await EMP_API.put(`/api/examiner/slots/${this.editingSlot.id}`, this.slotForm);
+          this.$emit("notify", "Slot updated.");
+        } else {
+          await EMP_API.post("/api/examiner/slots", this.slotForm);
+          this.$emit("notify", "Slot created.");
+        }
+        this.resetSlotForm();
+        await this.fetchDash();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async removeSlot(s) {
+      if (!confirm(`Delete slot on ${s.date} (${s.start_time}-${s.end_time})?`)) return;
+      try {
+        await EMP_API.delete(`/api/examiner/slots/${s.id}`);
+        this.$emit("notify", "Slot deleted.");
+        await this.fetchDash();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async startEvaluate(b) {
+      this.activeBooking = b;
+      try {
+        const res = await EMP_API.get(`/api/admin/examinations/${b.examination_id}/rubrics`);
+        const rubrics = res.rubrics || [];
+        const prev = b.evaluation && b.evaluation.rubric_breakdown ? b.evaluation.rubric_breakdown : [];
+
+        this.rubricInputs = rubrics.map((r) => {
+          const match = prev.find((x) => x.rubric_id === r.id);
+          return {
+            rubric_id: r.id,
+            criterion_name: r.criterion_name,
+            max_marks: r.max_marks,
+            weightage: r.weightage,
+            description: r.description,
+            marks_awarded: match ? match.marks_awarded : r.max_marks * 0.8,
+            comment: match ? match.comment : "Good",
+          };
+        });
+        this.remarks = b.evaluation ? b.evaluation.remarks : "Good understanding and execution.";
+        this.directMarks = b.evaluation ? b.evaluation.total_marks : 80;
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    calcTotal() {
+      if (this.rubricInputs && this.rubricInputs.length > 0) {
+        return this.rubricInputs.reduce((sum, x) => sum + (parseFloat(x.marks_awarded) || 0), 0).toFixed(2);
+      }
+      return this.directMarks;
+    },
+    async saveEvaluation() {
+      if (!this.activeBooking) return;
+      try {
+        const res = await EMP_API.post(
+          `/api/examiner/bookings/${this.activeBooking.id}/evaluate`,
+          {
+            remarks: this.remarks,
+            rubric_scores: this.rubricInputs,
+            total_marks: this.calcTotal(),
+          }
+        );
+        this.$emit("notify", res.message);
+        this.activeBooking = null;
+        await this.fetchDash();
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+  },
+};
+</script>
