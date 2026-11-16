@@ -236,3 +236,83 @@
                   </td>
                   <td>
                     <input type="text" class="form-control form-control-sm" v-model="item.comment" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="mb-3">
+            <label class="form-label fw-medium">Total Marks (out of {{ activeBooking.max_marks }})</label>
+            <input type="number" step="0.5" class="form-control" v-model.number="directMarks" :max="activeBooking.max_marks" min="0" required />
+          </div>
+
+          <div class="row g-3 align-items-center">
+            <div class="col-md-8">
+              <label class="form-label small fw-medium">Remarks <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" v-model.trim="remarks" required />
+            </div>
+            <div class="col-md-4 text-end">
+              <div class="mb-2">
+                <span class="text-muted small">Total: </span>
+                <span class="fs-5 fw-bold text-primary">{{ calcTotal() }} / {{ activeBooking.max_marks }}</span>
+              </div>
+              <button type="submit" class="btn btn-success w-100 fw-semibold">
+                Save Evaluation
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="card section-card p-4">
+        <h5 class="fw-bold mb-3">Booked Students ({{ (dash.bookings || []).length }})</h5>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Student</th>
+                <th>Examination</th>
+                <th>Date &amp; Time</th>
+                <th>Status</th>
+                <th>Marks</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="b in dash.bookings" :key="b.id">
+                <td>#{{ b.id }}</td>
+                <td>
+                  <div class="fw-bold">{{ b.student_name }}</div>
+                  <small class="text-muted">{{ b.student_roll_number }} | {{ b.student_email }}</small>
+                </td>
+                <td>
+                  <span class="badge bg-dark me-1">{{ b.course_code }}</span>
+                  <span>{{ b.examination_name }}</span>
+                </td>
+                <td>
+                  <div>{{ b.slot_date }}</div>
+                  <small class="text-muted">{{ b.start_time }} - {{ b.end_time }}</small>
+                </td>
+                <td>
+                  <span :class="['badge', b.status === 'Completed' ? 'bg-success' : 'bg-primary']">{{ b.status }}</span>
+                </td>
+                <td>
+                  <div v-if="b.evaluation">
+                    <strong>{{ b.evaluation.total_marks }} / {{ b.max_marks }}</strong>
+                    <span class="badge bg-info text-dark ms-1">{{ b.evaluation.grade }}</span>
+                    <div class="small text-muted">{{ b.evaluation.remarks }}</div>
+                  </div>
+                  <span v-else class="badge bg-warning text-dark">Pending</span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-primary" @click="startEvaluate(b)">
+                    {{ b.evaluation ? 'Edit Marks' : 'Evaluate' }}
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="(dash.bookings || []).length === 0">
+                <td colspan="7" class="text-center text-muted py-3">No students booked yet.</td>
+              </tr>
+            </tbody>
+          </table>
