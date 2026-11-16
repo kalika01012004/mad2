@@ -316,3 +316,83 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import EMP_API from "../services/api";
+
+export default {
+  name: "ExaminerPortal",
+  emits: ["notify"],
+  data() {
+    const nextWeek = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+    return {
+      tab: "dashboard",
+      dash: {
+        summary: {},
+        assigned_examinations: [],
+        slots: [],
+        bookings: [],
+      },
+      editingSlot: null,
+      slotForm: {
+        examination_id: "",
+        date: nextWeek,
+        start_time: "10:00",
+        end_time: "10:30",
+        max_capacity: 2,
+        venue: "Online / Google Meet",
+        meeting_link: "https://meet.google.com/emp-live-slot",
+      },
+      activeBooking: null,
+      rubricInputs: [],
+      remarks: "",
+      directMarks: 0,
+    };
+  },
+  mounted() {
+    this.fetchDash();
+  },
+  methods: {
+    async fetchDash() {
+      try {
+        const res = await EMP_API.get("/api/examiner/dashboard");
+        this.dash = res;
+        if (!this.slotForm.examination_id && res.assigned_examinations && res.assigned_examinations.length > 0) {
+          const openEx = res.assigned_examinations.find((e) => e.can_create_slots) || res.assigned_examinations[0];
+          this.slotForm.examination_id = openEx.id;
+        }
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    resetSlotForm() {
+      const nextWeek = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+      this.editingSlot = null;
+      this.slotForm = {
+        examination_id:
+          this.dash.assigned_examinations.length > 0
+            ? this.dash.assigned_examinations[0].id
+            : "",
+        date: nextWeek,
+        start_time: "10:00",
+        end_time: "10:30",
+        max_capacity: 2,
+        venue: "Online / Google Meet",
+        meeting_link: "https://meet.google.com/emp-live-slot",
+      };
+    },
+    editSlot(s) {
+      this.editingSlot = s;
+      this.slotForm = {
+        examination_id: s.examination_id,
+        date: s.date,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        max_capacity: s.max_capacity,
+        venue: s.venue,
+        meeting_link: s.meeting_link,
