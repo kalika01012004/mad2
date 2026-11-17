@@ -166,3 +166,87 @@
           <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Examiner</th>
+                <th>Venue</th>
+                <th>Available Seats</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="s in examSlots" :key="s.id">
+                <td>#{{ s.id }}</td>
+                <td class="fw-semibold">{{ s.date }}</td>
+                <td>{{ s.start_time }} - {{ s.end_time }}</td>
+                <td>{{ s.examiner_name }}</td>
+                <td class="small">{{ s.venue }}</td>
+                <td><strong>{{ s.available_seats }}</strong> / {{ s.max_capacity }}</td>
+                <td>
+                  <span :class="['badge', s.status === 'Available' ? 'bg-success' : 'bg-warning text-dark']">
+                    {{ s.status }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary"
+                    :disabled="s.status !== 'Available' || s.available_seats <= 0 || !activeExam.can_book_slots || isBooked(activeExam.id)"
+                    @click="bookSlot(s)"
+                  >
+                    {{ isBooked(activeExam.id) ? 'Booked' : 'Book Slot' }}
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="examSlots.length === 0">
+                <td colspan="8" class="text-center text-muted py-3">No slots available yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div v-for="ex in examList" :key="ex.id" class="col-md-6">
+          <div class="card section-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <span class="badge bg-dark me-1">{{ ex.course_code }}</span>
+                <span class="badge bg-info text-dark">{{ ex.exam_type }}</span>
+              </div>
+              <span :class="['badge', ex.can_book_slots ? 'bg-success' : 'bg-secondary']">
+                {{ ex.can_book_slots ? 'Booking Open' : ex.status }}
+              </span>
+            </div>
+            <h5 class="fw-bold mb-1">{{ ex.name }}</h5>
+            <p class="small text-muted mb-2">{{ ex.course_name }} | Duration: {{ ex.duration }} mins | Max Marks: {{ ex.max_marks }}</p>
+            <div class="small bg-light p-2 rounded mb-3">
+              <div><strong>Booking Window:</strong> {{ ex.slot_booking_start }} to {{ ex.slot_booking_end }}</div>
+              <div><strong>Available Slots:</strong> {{ ex.available_slots_count }} open (Total: {{ ex.slots_count }})</div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-auto">
+              <span v-if="isBooked(ex.id)" class="badge bg-primary">
+                Booked
+              </span>
+              <span v-else class="small text-muted">1 slot per exam</span>
+              <button class="btn btn-sm btn-outline-primary fw-semibold" @click="loadExamSlots(ex)">
+                View Slots
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tab === 'bookings'" class="card section-card p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">My Examination Bookings</h5>
+        <button class="btn btn-sm btn-success" @click="exportCsv">
+          Export CSV
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
