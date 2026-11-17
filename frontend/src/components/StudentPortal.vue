@@ -335,3 +335,87 @@
             <span class="badge bg-success me-1">Grade {{ b.evaluation.grade }} ({{ b.evaluation.percentage }}%)</span>
             <span :class="['badge', b.evaluation.passed ? 'bg-success' : 'bg-danger']">
               {{ b.evaluation.passed ? 'PASS' : 'FAIL' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="alert alert-light border mb-3">
+          <strong>Remarks:</strong>
+          {{ b.evaluation.remarks || 'Good.' }}
+        </div>
+
+        <div v-if="b.evaluation.rubric_breakdown && b.evaluation.rubric_breakdown.length" class="table-responsive mb-3">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Criterion</th>
+                <th>Weightage</th>
+                <th>Marks</th>
+                <th>Comment</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="rb in b.evaluation.rubric_breakdown" :key="rb.rubric_id">
+                <td class="fw-semibold">{{ rb.criterion_name }}</td>
+                <td>{{ rb.weightage }}%</td>
+                <td><strong>{{ rb.marks_awarded }}</strong> / {{ rb.max_marks }}</td>
+                <td class="small text-muted">{{ rb.comment }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="text-end">
+          <button class="btn btn-primary btn-sm" @click="getScorecard(b)">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i>Download Scorecard PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import EMP_API from "../services/api";
+
+export default {
+  name: "StudentPortal",
+  emits: ["notify", "refresh-notifications"],
+  data() {
+    return {
+      tab: "dashboard",
+      dash: {
+        summary: {},
+        courses: [],
+        available_examinations: [],
+        available_slots: [],
+        upcoming_examinations: [],
+        bookings: [],
+        active_booked_exam_ids: [],
+        published_results: [],
+      },
+      filter: {
+        q: "",
+        course_id: "",
+        exam_type: "",
+        status: "",
+      },
+      examList: [],
+      activeExam: null,
+      examSlots: [],
+    };
+  },
+  mounted() {
+    this.fetchDash();
+  },
+  methods: {
+    async fetchDash() {
+      try {
+        const res = await EMP_API.get("/api/student/dashboard");
+        this.dash = res;
+        this.examList = res.available_examinations || [];
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async filterExams() {
