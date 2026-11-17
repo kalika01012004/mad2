@@ -419,3 +419,87 @@ export default {
       }
     },
     async filterExams() {
+      try {
+        const params = new URLSearchParams();
+        if (this.filter.q) params.append("q", this.filter.q);
+        if (this.filter.course_id) params.append("course_id", this.filter.course_id);
+        if (this.filter.exam_type) params.append("exam_type", this.filter.exam_type);
+        if (this.filter.status) params.append("status", this.filter.status);
+
+        const res = await EMP_API.get(`/api/student/examinations?${params.toString()}`);
+        this.examList = res.examinations || [];
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async loadExamSlots(exam) {
+      this.activeExam = exam;
+      try {
+        const res = await EMP_API.get(`/api/student/examinations/${exam.id}/slots`);
+        this.examSlots = res.slots || [];
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    isBooked(examId) {
+      return (this.dash.active_booked_exam_ids || []).includes(examId);
+    },
+    async bookSlot(slot) {
+      try {
+        const res = await EMP_API.post("/api/student/bookings", { slot_id: slot.id });
+        this.$emit("notify", res.message);
+        if (this.activeExam) {
+          await this.loadExamSlots(this.activeExam);
+        }
+        await this.fetchDash();
+        this.$emit("refresh-notifications");
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async cancelBooking(b) {
+      if (!confirm(`Cancel booking for '${b.examination_name}' on ${b.slot_date}?`)) return;
+      try {
+        const res = await EMP_API.post(`/api/student/bookings/${b.id}/cancel`);
+        this.$emit("notify", res.message);
+        await this.fetchDash();
+        this.$emit("refresh-notifications");
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    async exportCsv() {
+      try {
+        const res = await EMP_API.post("/api/student/exports/csv");
+        this.$emit("notify", res.message);
+        this.$emit("refresh-notifications");
+        if (res.download_url) {
+          window.open(EMP_API.resolveUrl(res.download_url), "_blank");
+        }
+      } catch (err) {
+        this.$emit("notify", err.message, "danger");
+      }
+    },
+    getScorecard(b) {
+      const token = EMP_API.getToken();
+      fetch(EMP_API.resolveUrl(`/api/student/bookings/${b.id}/scorecard`), {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((resp) => {
+          if (!resp.ok) throw new Error("Could not download scorecard.");
+          return resp.blob();
+        })
+        .then((blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `Scorecard_${b.student_roll_number || b.student_id}_Exam_${b.examination_id}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        })
+        .catch((err) => this.$emit("notify", err.message, "danger"));
+    },
+  },
+};
+</script>
