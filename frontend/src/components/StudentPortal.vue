@@ -250,3 +250,88 @@
         <table class="table table-hover align-middle">
           <thead class="table-light">
             <tr>
+              <th>ID</th>
+              <th>Examination</th>
+              <th>Date &amp; Time</th>
+              <th>Examiner</th>
+              <th>Venue</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="b in dash.bookings" :key="b.id">
+              <td>#{{ b.id }}</td>
+              <td>
+                <span class="badge bg-dark me-1">{{ b.course_code }}</span>
+                <strong>{{ b.examination_name }}</strong>
+                <div class="small text-muted">{{ b.exam_type }}</div>
+              </td>
+              <td>
+                <div>{{ b.slot_date }}</div>
+                <small class="text-muted">{{ b.start_time }} - {{ b.end_time }}</small>
+              </td>
+              <td>{{ b.examiner_name }}</td>
+              <td class="small">
+                <div>{{ b.venue }}</div>
+                <a v-if="b.meeting_link && b.status === 'Booked'" :href="b.meeting_link" target="_blank">Meeting Link</a>
+              </td>
+              <td>
+                <span
+                  :class="[
+                    'badge',
+                    b.status === 'Completed' ? 'bg-success' : b.status === 'Booked' ? 'bg-primary' : 'bg-danger',
+                  ]"
+                >
+                  {{ b.status }}
+                </span>
+                <div v-if="b.rescheduled_by_admin" class="small text-warning mt-1">
+                  {{ b.admin_notes }}
+                </div>
+              </td>
+              <td>
+                <button
+                  v-if="b.status === 'Booked'"
+                  class="btn btn-sm btn-outline-danger"
+                  @click="cancelBooking(b)"
+                >
+                  Cancel
+                </button>
+                <button
+                  v-else-if="b.evaluation && b.results_published"
+                  class="btn btn-sm btn-outline-success"
+                  @click="tab = 'results'"
+                >
+                  Result ({{ b.evaluation.total_marks }}/{{ b.max_marks }})
+                </button>
+                <span v-else class="small text-muted">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div v-if="tab === 'results'">
+      <div v-if="(dash.published_results || []).length === 0" class="card section-card p-5 text-center text-muted">
+        <h5>No Published Results Yet</h5>
+        <p class="small mb-0">Results will appear here once published by the Admin.</p>
+      </div>
+
+      <div v-for="b in dash.published_results" :key="b.id" class="card section-card p-4 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-3">
+          <div>
+            <span class="badge bg-dark me-2">{{ b.course_code }} - {{ b.course_name }}</span>
+            <span class="badge bg-info text-dark">{{ b.exam_type }}</span>
+            <h4 class="fw-bold mt-2 mb-0">{{ b.examination_name }}</h4>
+            <small class="text-muted">
+              Examiner: <strong>{{ b.examiner_name }}</strong> | Date: {{ b.slot_date }}
+            </small>
+          </div>
+          <div class="text-end">
+            <div class="display-6 fw-bold text-primary">
+              {{ b.evaluation.total_marks }} <span class="fs-5 text-muted">/ {{ b.max_marks }}</span>
+            </div>
+            <span class="badge bg-success me-1">Grade {{ b.evaluation.grade }} ({{ b.evaluation.percentage }}%)</span>
+            <span :class="['badge', b.evaluation.passed ? 'bg-success' : 'bg-danger']">
+              {{ b.evaluation.passed ? 'PASS' : 'FAIL' }}
