@@ -93,3 +93,50 @@
       v-else-if="user.role === 'admin'"
       @notify="notify"
       @refresh-notifications="loadNotifications"
+    />
+
+    <ExaminerPortal
+      v-else-if="user.role === 'examiner'"
+      @notify="notify"
+    />
+
+    <StudentPortal
+      v-else-if="user.role === 'student'"
+      @notify="notify"
+      @refresh-notifications="loadNotifications"
+    />
+
+    <ProfileModal
+      v-if="user && showProfileModal"
+      :user="user"
+      @close="showProfileModal = false"
+      @updated="user = $event"
+      @notify="notify"
+    />
+  </div>
+</template>
+
+<script>
+import EMP_API from "./services/api";
+import AuthView from "./components/AuthView.vue";
+import AdminPortal from "./components/AdminPortal.vue";
+import ExaminerPortal from "./components/ExaminerPortal.vue";
+import StudentPortal from "./components/StudentPortal.vue";
+import ProfileModal from "./components/ProfileModal.vue";
+
+export default {
+  name: "App",
+  components: {
+    AuthView,
+    AdminPortal,
+    ExaminerPortal,
+    StudentPortal,
+    ProfileModal,
+  },
+  data() {
+    return {
+      user: EMP_API.getUser(),
+      toasts: [],
+      notifications: [],
+      unreadCount: 0,
+      showNotifPanel: false,
