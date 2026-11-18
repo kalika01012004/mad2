@@ -140,3 +140,51 @@ export default {
       notifications: [],
       unreadCount: 0,
       showNotifPanel: false,
+      showProfileModal: false,
+    };
+  },
+  mounted() {
+    if (this.user && EMP_API.getToken()) {
+      this.loadNotifications();
+    }
+  },
+  methods: {
+    resolveUrl(path) {
+      return EMP_API.resolveUrl(path);
+    },
+    notify(message, type = "success") {
+      const id = Date.now() + Math.random();
+      this.toasts.push({ id, message, type });
+      setTimeout(() => {
+        this.toasts = this.toasts.filter((t) => t.id !== id);
+      }, 4500);
+    },
+    onAuthenticated(usr) {
+      this.user = usr;
+      this.loadNotifications();
+    },
+    logout() {
+      EMP_API.setToken("");
+      EMP_API.setUser(null);
+      this.user = null;
+      this.showNotifPanel = false;
+      this.showProfileModal = false;
+      this.notify("Logged out.", "info");
+    },
+    async loadNotifications() {
+      if (!this.user) return;
+      try {
+        const res = await EMP_API.get("/api/auth/notifications");
+        this.notifications = res.notifications || [];
+        this.unreadCount = res.unread_count || 0;
+      } catch {}
+    },
+    async markAllRead() {
+      try {
+        await EMP_API.put("/api/auth/notifications/read-all");
+        await this.loadNotifications();
+      } catch {}
+    },
+  },
+};
+</script>
