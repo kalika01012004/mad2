@@ -46,3 +46,50 @@
               <i class="bi bi-box-arrow-right me-1"></i>Logout
             </button>
           </template>
+        </div>
+      </div>
+    </nav>
+
+    <div
+      v-if="user && showNotifPanel"
+      class="card shadow-lg position-fixed"
+      style="top: 62px; right: 20px; width: 370px; max-height: 480px; z-index: 1500; overflow-y: auto;"
+    >
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-bell me-1 text-primary"></i>Notifications</h6>
+        <div>
+          <button class="btn btn-link btn-sm text-decoration-none p-0 me-2" @click="markAllRead">Mark all read</button>
+          <button class="btn-close btn-sm" @click="showNotifPanel = false"></button>
+        </div>
+      </div>
+      <div class="list-group list-group-flush">
+        <div v-if="notifications.length === 0" class="p-3 text-center text-muted small">
+          No notifications yet.
+        </div>
+        <div
+          v-for="n in notifications"
+          :key="n.id"
+          :class="['list-group-item', !n.is_read ? 'bg-light' : '']"
+        >
+          <div class="d-flex justify-content-between">
+            <strong class="small text-primary">{{ n.title }}</strong>
+            <span class="badge bg-secondary">{{ n.notif_type }}</span>
+          </div>
+          <p class="small mb-1 text-secondary mt-1">{{ n.message }}</p>
+          <a v-if="n.action_url" :href="resolveUrl(n.action_url)" target="_blank" class="btn btn-xs btn-outline-primary btn-sm py-0 px-2">
+            <i class="bi bi-download me-1"></i>Download
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <AuthView
+      v-if="!user"
+      @authenticated="onAuthenticated"
+      @notify="notify"
+    />
+
+    <AdminPortal
+      v-else-if="user.role === 'admin'"
+      @notify="notify"
+      @refresh-notifications="loadNotifications"
