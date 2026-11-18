@@ -2,6 +2,11 @@
 
 Web application for managing courses, examinations, examiner slot schedules, student slot bookings, rubric evaluations, and result scorecards.
 
+## Author & Demo
+- **Name:** Kalika (`23F2004007`)
+- **Email:** `23f2004007@ds.study.iitm.ac.in`
+- **Demo Walkthrough Video:** https://drive.google.com/file/d/13-hTfwxfiARkfi-AFc5idFN3pVQN2byJ/view?usp=sharing
+
 ## Tech Stack
 - **Backend:** Flask, Flask-SQLAlchemy, Flask-JWT-Extended, Flask-CORS, SQLite, Redis, Celery, ReportLab
 - **Frontend:** Vue 3 (Vue CLI), Bootstrap 5, Chart.js
